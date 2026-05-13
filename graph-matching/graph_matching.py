@@ -2,9 +2,9 @@
 """Temporal community detection and matching for SNAP Email-EU-core.
 
 The pipeline implements the first project phase:
-1. keep the first part of the temporal edge list,
-2. build graph snapshots with several time-window strategies,
-3. detect Louvain communities per snapshot,
+1. keep the first part of the temporal edge list (days 0-500)
+2. build graph snapshots with several time-window strategies (interval, cumulative, and overlapping)
+3. detect Louvain communities per snapshot
 4. match communities across consecutive snapshots and label events.
 """
 
@@ -33,6 +33,20 @@ from networkx.algorithms.community import louvain_communities
 
 
 SECONDS_PER_DAY = 24 * 60 * 60
+
+
+def find_project_root(start: Path | None = None) -> Path:
+    """Find the folder that contains the shared dataset directory."""
+    current = (start or Path(__file__)).resolve()
+    if current.is_file():
+        current = current.parent
+
+    for candidate in (current, *current.parents):
+        data_path = candidate / "dataset" / "email-Eu-core-temporal.txt"
+        if data_path.exists():
+            return candidate
+
+    return Path(__file__).resolve().parent
 
 
 @dataclass(frozen=True)
@@ -391,8 +405,7 @@ def run_approach(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run temporal graph matching on SNAP Email-EU-core.")
-    script_dir = Path(__file__).resolve().parent
-    project_dir = script_dir.parent
+    project_dir = find_project_root()
     parser.add_argument("--data", type=Path, default=project_dir / "dataset" / "email-Eu-core-temporal.txt")
     parser.add_argument("--output", type=Path, default=Path("outputs/graph_matching"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")

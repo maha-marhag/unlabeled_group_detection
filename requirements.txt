@@ -1,2 +1,6 @@
 pandas>=2.0
 networkx>=3.2
+ipykernel>=6.0
+plotly>=5.20
+nbformat>=4.2
+matplotlib>=3.7
