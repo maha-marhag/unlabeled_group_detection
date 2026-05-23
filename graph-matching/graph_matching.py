@@ -5,7 +5,7 @@ The pipeline implements the first project phase:
 1. keep the first part of the temporal edge list (days 0-500)
 2. build graph snapshots with several time-window strategies (interval, cumulative, and overlapping)
 3. detect Louvain communities per snapshot
-4. match communities across consecutive snapshots and label events.
+4. calculate Jaccard similarities and match communities across consecutive snapshots.
 """
 
 from __future__ import annotations
@@ -73,7 +73,6 @@ class CommunityRecord:
     window_start_ts: int
     window_end_ts: int
     local_id: int
-    persistent_id: str
     nodes: frozenset[int]
 
 
@@ -189,7 +188,6 @@ def match_pair(
                 "to_snapshot": curr.snapshot_index,
                 "from_local_id": prev.local_id,
                 "to_local_id": curr.local_id,
-                "from_persistent_id": prev.persistent_id,
                 "overlap_size": overlap,
                 "jaccard": score,
                 "prev_size": len(prev.nodes),
@@ -208,88 +206,14 @@ def match_pair(
     return matches, prev_to_curr, curr_to_prev
 
 
-def assign_ids_and_events(
-    all_snapshots: list[list[CommunityRecord]],
-    approach: str,
-    threshold: float,
-) -> tuple[list[dict], list[dict]]:
-    next_id = 1
+def match_snapshots(all_snapshots: list[list[CommunityRecord]], threshold: float) -> list[dict]:
     matches_out: list[dict] = []
-    events_out: list[dict] = []
-
-    for community in all_snapshots[0] if all_snapshots else []:
-        community.persistent_id = f"{approach.upper()}-{next_id:04d}"
-        next_id += 1
-        events_out.append(event_row(approach, "birth", None, community, []))
-
     for snapshot_index in range(1, len(all_snapshots)):
         previous = all_snapshots[snapshot_index - 1]
         current = all_snapshots[snapshot_index]
-        matches, prev_to_curr, curr_to_prev = match_pair(previous, current, threshold)
-
-        for curr in current:
-            parent_matches = curr_to_prev.get(curr.local_id, [])
-            if not parent_matches:
-                curr.persistent_id = f"{approach.upper()}-{next_id:04d}"
-                next_id += 1
-                events_out.append(event_row(approach, "birth", None, curr, []))
-                continue
-
-            best_parent = parent_matches[0]
-            siblings = prev_to_curr[best_parent["from_local_id"]]
-            is_primary_split_child = siblings[0]["to_local_id"] == curr.local_id
-            if len(siblings) == 1 or is_primary_split_child:
-                curr.persistent_id = best_parent["from_persistent_id"]
-            else:
-                curr.persistent_id = f"{approach.upper()}-{next_id:04d}"
-                next_id += 1
-
-        for row in matches:
-            matched_current = current[row["to_local_id"]]
-            row["to_persistent_id"] = matched_current.persistent_id
-            matches_out.append(row)
-
-        for prev in previous:
-            child_matches = prev_to_curr.get(prev.local_id, [])
-            if not child_matches:
-                events_out.append(event_row(approach, "death", prev, None, []))
-            elif len(child_matches) == 1 and len(curr_to_prev[child_matches[0]["to_local_id"]]) == 1:
-                events_out.append(event_row(approach, "continuation", prev, current[child_matches[0]["to_local_id"]], child_matches))
-            else:
-                event_type = "split"
-                if len(child_matches) > 1 and any(len(curr_to_prev[row["to_local_id"]]) > 1 for row in child_matches):
-                    event_type = "complex"
-                events_out.append(event_row(approach, event_type, prev, None, child_matches))
-
-        for curr in current:
-            parent_matches = curr_to_prev.get(curr.local_id, [])
-            if len(parent_matches) > 1:
-                events_out.append(event_row(approach, "merge", None, curr, parent_matches))
-
-    return matches_out, events_out
-
-
-def event_row(
-    approach: str,
-    event_type: str,
-    previous: CommunityRecord | None,
-    current: CommunityRecord | None,
-    matches: list[dict],
-) -> dict:
-    snapshot_index = current.snapshot_index if current is not None else previous.snapshot_index
-    persistent_id = current.persistent_id if current is not None else previous.persistent_id
-    local_id = current.local_id if current is not None else previous.local_id
-    return {
-        "approach": approach,
-        "snapshot_index": snapshot_index,
-        "event_type": event_type,
-        "persistent_id": persistent_id,
-        "local_id": local_id,
-        "matched_local_ids": ";".join(
-            str(row["to_local_id"] if previous is not None else row["from_local_id"]) for row in matches
-        ),
-        "match_scores": ";".join(f"{row['jaccard']:.4f}" for row in matches),
-    }
+        matches, _, _ = match_pair(previous, current, threshold)
+        matches_out.extend(matches)
+    return matches_out
 
 
 def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str]) -> None:
@@ -330,7 +254,6 @@ def run_approach(
                 window_start_ts=window.start_ts,
                 window_end_ts=window.end_ts,
                 local_id=i,
-                persistent_id="",
                 nodes=community,
             )
             for i, community in enumerate(communities)
@@ -350,7 +273,7 @@ def run_approach(
             }
         )
 
-    matches, events = assign_ids_and_events(snapshots, approach, match_threshold)
+    matches = match_snapshots(snapshots, match_threshold)
 
     community_rows = []
     for snapshot in snapshots:
@@ -363,7 +286,6 @@ def run_approach(
                     "window_start_ts": community.window_start_ts,
                     "window_end_ts": community.window_end_ts,
                     "local_id": community.local_id,
-                    "persistent_id": community.persistent_id,
                     "size": len(community.nodes),
                     "nodes_json": json.dumps(sorted(community.nodes)),
                 }
@@ -378,7 +300,7 @@ def run_approach(
     write_csv(
         base / "communities.csv",
         community_rows,
-        ["approach", "snapshot_index", "snapshot_label", "window_start_ts", "window_end_ts", "local_id", "persistent_id", "size", "nodes_json"],
+        ["approach", "snapshot_index", "snapshot_label", "window_start_ts", "window_end_ts", "local_id", "size", "nodes_json"],
     )
     write_csv(
         base / "matches.csv",
@@ -388,18 +310,11 @@ def run_approach(
             "to_snapshot",
             "from_local_id",
             "to_local_id",
-            "from_persistent_id",
-            "to_persistent_id",
             "overlap_size",
             "jaccard",
             "prev_size",
             "curr_size",
         ],
-    )
-    write_csv(
-        base / "events.csv",
-        events,
-        ["approach", "snapshot_index", "event_type", "persistent_id", "local_id", "matched_local_ids", "match_scores"],
     )
 
 
@@ -413,7 +328,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--snapshot-days", type=int, default=50)
     parser.add_argument("--num-snapshots", type=int, default=10)
     parser.add_argument("--overlap-fraction", type=float, default=0.5)
-    parser.add_argument("--match-threshold", type=float, default=0.3)
+    parser.add_argument("--match-threshold", type=float, default=0.5)
     parser.add_argument("--min-community-size", type=int, default=3)
     parser.add_argument("--resolution", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=42)

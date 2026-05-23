@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from collections import Counter
 from pathlib import Path
 
 import networkx as nx
@@ -15,9 +14,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from graph_matching import build_graph, edges_for_window, find_project_root, load_edges, make_windows
-
-
-EVENT_TYPES = ["birth", "death", "continuation", "split", "merge", "complex"]
 
 
 def load_communities(path: Path) -> pd.DataFrame:
@@ -129,19 +125,17 @@ def community_metrics(graph: nx.Graph, communities: list[set[int]]) -> dict:
     }
 
 
-def compute_metrics_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def compute_metrics_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     project_root = find_project_root()
     data_path = args.data or project_root / "dataset" / "email-Eu-core-temporal.txt"
     result_root = args.results / approach
 
     communities_path = result_root / "communities.csv"
-    events_path = result_root / "events.csv"
-    if not communities_path.exists() or not events_path.exists():
+    if not communities_path.exists():
         raise FileNotFoundError(f"Missing graph matching outputs for {approach}. Run graph_matching.py first.")
 
     edges = load_edges(data_path, cutoff_days=args.cutoff_days)
     communities_df = load_communities(communities_path)
-    events_df = pd.read_csv(events_path)
     windows = make_windows(
         approach=approach,
         cutoff_days=args.cutoff_days,
@@ -169,15 +163,7 @@ def compute_metrics_for_approach(args: argparse.Namespace, approach: str) -> tup
         network_rows.append({**base, **graph_metrics(graph, communities)})
         community_rows.append({**base, **community_metrics(graph, communities)})
 
-    event_rows = []
-    for snapshot_index in sorted(set([window.index for window in windows]) | set(events_df["snapshot_index"].astype(int))):
-        counts = Counter(events_df.loc[events_df["snapshot_index"] == snapshot_index, "event_type"])
-        row = {"approach": approach, "snapshot_index": snapshot_index}
-        for event_type in EVENT_TYPES:
-            row[event_type] = int(counts.get(event_type, 0))
-        event_rows.append(row)
-
-    return pd.DataFrame(network_rows), pd.DataFrame(community_rows), pd.DataFrame(event_rows)
+    return pd.DataFrame(network_rows), pd.DataFrame(community_rows)
 
 
 def add_line(fig: go.Figure, df: pd.DataFrame, metric: str, row: int, col: int, label: str | None = None) -> None:
@@ -194,9 +180,9 @@ def add_line(fig: go.Figure, df: pd.DataFrame, metric: str, row: int, col: int, 
     )
 
 
-def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.DataFrame, event_df: pd.DataFrame) -> go.Figure:
+def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
-        rows=4,
+        rows=3,
         cols=2,
         subplot_titles=[
             "Network Size",
@@ -205,13 +191,10 @@ def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.Da
             "Degree / Communication Volume",
             "Community Counts",
             "Community Size Distribution",
-            "Community Compactness",
-            "Lifecycle Events",
         ],
         specs=[
             [{"secondary_y": True}, {}],
             [{}, {"secondary_y": True}],
-            [{}, {}],
             [{}, {}],
         ],
         vertical_spacing=0.09,
@@ -232,26 +215,11 @@ def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.Da
     add_line(fig, community_df, "mean_community_size", 3, 2, "mean size")
     add_line(fig, community_df, "median_community_size", 3, 2, "median size")
     add_line(fig, community_df, "max_community_size", 3, 2, "max size")
-    add_line(fig, community_df, "mean_internal_density", 4, 1, "mean internal density")
-    add_line(fig, network_df, "modularity", 4, 1, "modularity")
-
-    for event_type in EVENT_TYPES:
-        fig.add_trace(
-            go.Bar(
-                x=event_df["snapshot_index"],
-                y=event_df[event_type],
-                name=event_type,
-                hovertemplate=f"{event_type}<br>snapshot=%{{x}}<br>count=%{{y}}<extra></extra>",
-            ),
-            row=4,
-            col=2,
-        )
 
     fig.update_layout(
         title=f"{approach.title()} Evolution Metrics Dashboard",
-        height=1250,
+        height=1000,
         width=1450,
-        barmode="stack",
         hovermode="x unified",
         legend={"orientation": "h", "yanchor": "bottom", "y": -0.12, "xanchor": "left", "x": 0},
         margin={"l": 60, "r": 60, "t": 90, "b": 140},
@@ -263,10 +231,10 @@ def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.Da
     return fig
 
 
-def build_metric_dashboard_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, go.Figure]:
-    network_df, community_df, event_df = compute_metrics_for_approach(args, approach)
-    fig = build_dashboard(approach, network_df, community_df, event_df)
-    return network_df, community_df, event_df, fig
+def build_metric_dashboard_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame, go.Figure]:
+    network_df, community_df = compute_metrics_for_approach(args, approach)
+    fig = build_dashboard(approach, network_df, community_df)
+    return network_df, community_df, fig
 
 
 def parse_args() -> argparse.Namespace:
@@ -285,8 +253,8 @@ def main() -> None:
     args = parse_args()
     approaches = ["cumulative", "interval", "overlap"] if args.approach == "all" else [args.approach]
     for approach in approaches:
-        network_df, community_df, event_df, _ = build_metric_dashboard_for_approach(args, approach)
-        print(f"{approach}: {len(network_df)} network rows, {len(community_df)} community rows, {len(event_df)} event rows")
+        network_df, community_df, _ = build_metric_dashboard_for_approach(args, approach)
+        print(f"{approach}: {len(network_df)} network rows, {len(community_df)} community rows")
 
 
 if __name__ == "__main__":

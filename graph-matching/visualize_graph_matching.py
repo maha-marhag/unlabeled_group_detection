@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 from html import escape
 import json
 from pathlib import Path
@@ -15,30 +14,6 @@ import plotly.graph_objects as go
 from plotly.io import to_html
 
 from graph_matching import build_graph, edges_for_window, load_edges, make_windows
-
-
-PALETTE = [
-    "#2563eb",
-    "#dc2626",
-    "#16a34a",
-    "#9333ea",
-    "#ea580c",
-    "#0891b2",
-    "#be123c",
-    "#4f46e5",
-    "#65a30d",
-    "#c026d3",
-    "#0f766e",
-    "#b45309",
-    "#7c3aed",
-    "#0284c7",
-    "#475569",
-    "#db2777",
-    "#059669",
-    "#ca8a04",
-    "#1d4ed8",
-    "#991b1b",
-]
 
 
 def find_project_root(start: Path | None = None) -> Path:
@@ -60,15 +35,16 @@ STATUS_STYLE = {
 }
 
 
-def color_for_id(value: str) -> str:
-    digest = hashlib.sha1(value.encode("utf-8")).hexdigest()
-    return PALETTE[int(digest[:8], 16) % len(PALETTE)]
-
-
 def load_communities(path: Path) -> pd.DataFrame:
     communities = pd.read_csv(path)
     communities["nodes"] = communities["nodes_json"].apply(json.loads)
     return communities
+
+
+def load_matches(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame(columns=["from_snapshot", "to_snapshot", "from_local_id", "to_local_id", "jaccard"])
+    return pd.read_csv(path)
 
 
 def edge_trace(graph: nx.Graph, pos: dict[int, tuple[float, float]]) -> go.Scatter:
@@ -92,31 +68,59 @@ def edge_trace(graph: nx.Graph, pos: dict[int, tuple[float, float]]) -> go.Scatt
     )
 
 
-def select_focus_community(communities: pd.DataFrame, focus_community: str | None) -> str:
-    if focus_community:
-        return focus_community
+def select_focus_local_id(communities: pd.DataFrame, focus_community: str | None) -> int:
+    if focus_community is not None:
+        return int(focus_community)
 
-    first_snapshot = communities["snapshot_index"].min()
+    first_snapshot = int(communities["snapshot_index"].min())
     first_communities = communities.loc[communities["snapshot_index"] == first_snapshot]
     if first_communities.empty:
         raise ValueError("No communities available to visualize.")
 
     largest = first_communities.sort_values(["size", "local_id"], ascending=[False, True]).iloc[0]
-    return str(largest["persistent_id"])
+    return int(largest["local_id"])
 
 
-def focus_group_at_snapshot(communities: pd.DataFrame, snapshot_index: int, focus_community: str) -> dict | None:
+def trace_matched_path(matches: pd.DataFrame, start_local_id: int, max_snapshot: int) -> dict[int, int]:
+    path = {0: start_local_id}
+    current_local_id = start_local_id
+    for snapshot_index in range(max_snapshot):
+        rows = matches.loc[
+            (matches["from_snapshot"].astype(int) == snapshot_index)
+            & (matches["from_local_id"].astype(int) == current_local_id)
+        ].copy()
+        if rows.empty:
+            break
+        rows.sort_values(["jaccard", "overlap_size"], ascending=[False, False], inplace=True)
+        best = rows.iloc[0]
+        current_local_id = int(best["to_local_id"])
+        path[int(best["to_snapshot"])] = current_local_id
+    return path
+
+
+def focus_label(approach: str, path: dict[int, int]) -> str:
+    if not path:
+        return f"{approach}: no matched path"
+    first_snapshot = min(path)
+    return f"{approach}: S{first_snapshot}/C{path[first_snapshot]}"
+
+
+def focus_group_at_snapshot(communities: pd.DataFrame, snapshot_index: int, path: dict[int, int]) -> dict | None:
+    if snapshot_index not in path:
+        return None
+
+    local_id = path[snapshot_index]
     rows = communities.loc[
-        (communities["snapshot_index"] == snapshot_index)
-        & (communities["persistent_id"].astype(str) == str(focus_community))
+        (communities["snapshot_index"].astype(int) == snapshot_index)
+        & (communities["local_id"].astype(int) == local_id)
     ]
     if rows.empty:
         return None
 
-    row = rows.sort_values(["size", "local_id"], ascending=[False, True]).iloc[0]
+    row = rows.iloc[0]
     return {
+        "snapshot_index": int(row["snapshot_index"]),
         "local_id": int(row["local_id"]),
-        "persistent_id": str(row["persistent_id"]),
         "size": int(row["size"]),
         "nodes": [int(node) for node in row["nodes"]],
     }
@@ -144,10 +148,10 @@ def member_trace(
             "opacity": 0.92,
         },
         text=[
-            "User {node}<br>{status}<br>{pid}<br>community={cid}<br>community size={size}<br>weighted degree={degree}".format(
+            "User {node}<br>{status}<br>snapshot={snapshot}<br>community=C{cid}<br>community size={size}<br>weighted degree={degree}".format(
                 node=node,
                 status=style["label"],
-                pid=group["persistent_id"],
+                snapshot=group["snapshot_index"],
                 cid=group["local_id"],
                 size=group["size"],
                 degree=round(degrees.get(node, 0), 2),
@@ -165,22 +169,22 @@ def make_network_frame(
     graph: nx.Graph,
     communities: pd.DataFrame,
     snapshot_index: int,
-    focus_community: str,
+    path: dict[int, int],
     max_nodes: int,
     seed: int,
 ) -> tuple[list[go.Scatter], str]:
-    group = focus_group_at_snapshot(communities, snapshot_index, focus_community)
-    previous_group = focus_group_at_snapshot(communities, snapshot_index - 1, focus_community)
+    group = focus_group_at_snapshot(communities, snapshot_index, path)
+    previous_group = focus_group_at_snapshot(communities, snapshot_index - 1, path)
     if group is None:
         empty = go.Scatter(
             x=[],
             y=[],
             mode="markers",
-            name=f"{focus_community} absent",
+            name="tracked community absent",
             showlegend=True,
             hoverinfo="skip",
         )
-        return [empty], f"{focus_community} is not present in this snapshot"
+        return [empty], "The tracked matched path is not present in this snapshot"
 
     current_nodes = set(group["nodes"])
     previous_nodes = set(previous_group["nodes"]) if previous_group else set()
@@ -213,7 +217,7 @@ def make_network_frame(
         traces.append(member_trace(focus_graph, pos, departed_group, departed_nodes, "departed"))
 
     note = (
-        f"{focus_community}, local community C{group['local_id']}, "
+        f"local community C{group['local_id']}, "
         f"{len(stable_nodes)} stable, {len(new_nodes)} new, {len(departed_nodes)} departed, "
         f"{focus_graph.number_of_nodes()} displayed nodes, {focus_graph.number_of_edges()} visible weighted edges"
     )
@@ -228,7 +232,8 @@ def build_interactive_network_figure(
     edges: pd.DataFrame,
     windows: list,
     communities: pd.DataFrame,
-    focus_community: str,
+    path: dict[int, int],
+    label: str,
     max_nodes: int,
     max_snapshots: int,
     seed: int,
@@ -239,7 +244,7 @@ def build_interactive_network_figure(
 
     for window in windows:
         graph = build_graph(edges_for_window(edges, window))
-        traces, note = make_network_frame(graph, communities, window.index, focus_community, max_nodes, seed)
+        traces, note = make_network_frame(graph, communities, window.index, path, max_nodes, seed)
         frame_notes[window.index] = note
         frames.append(go.Frame(data=traces, name=str(window.index)))
 
@@ -250,8 +255,8 @@ def build_interactive_network_figure(
     fig = go.Figure(data=frames[0].data, frames=frames)
     fig.update_layout(
         title=(
-            f"{approach.title()} Focused Community Evolution: {focus_community}<br>"
-            f"<sup>Use the slider to follow this one persistent community over time. "
+            f"{approach.title()} Matched Community Path: {label}<br>"
+            f"<sup>Use the slider to follow the strongest Jaccard match path over time. "
             f"{frame_notes[first_window.index]}</sup>"
         ),
         showlegend=True,
@@ -290,11 +295,13 @@ def build_approach_figure(args: argparse.Namespace, approach: str) -> tuple[str,
     data_path = args.data or project_root / "dataset" / "email-Eu-core-temporal.txt"
     result_root = args.results / approach
     communities_path = result_root / "communities.csv"
+    matches_path = result_root / "matches.csv"
     if not communities_path.exists():
         raise FileNotFoundError(f"Missing graph matching results for {approach}. Run graph_matching.py first.")
 
     communities = load_communities(communities_path)
-    focus_community = select_focus_community(communities, args.focus_community)
+    matches = load_matches(matches_path)
+    start_local_id = select_focus_local_id(communities, args.focus_community)
     edges = load_edges(data_path, cutoff_days=args.cutoff_days)
     windows = make_windows(
         approach=approach,
@@ -303,17 +310,21 @@ def build_approach_figure(args: argparse.Namespace, approach: str) -> tuple[str,
         num_snapshots=args.num_snapshots,
         overlap_fraction=args.overlap_fraction,
     )
+    max_snapshot = max((window.index for window in windows), default=0)
+    path = trace_matched_path(matches, start_local_id, max_snapshot)
+    label = focus_label(approach, path)
     fig = build_interactive_network_figure(
         approach=approach,
         edges=edges,
         windows=windows,
         communities=communities,
-        focus_community=focus_community,
+        path=path,
+        label=label,
         max_nodes=args.max_nodes,
         max_snapshots=args.max_snapshots,
         seed=args.seed,
     )
-    return focus_community, fig
+    return label, fig
 
 
 def write_combined_html(figures: dict[str, tuple[str, go.Figure]], output_path: Path) -> None:
@@ -351,7 +362,7 @@ def write_combined_html(figures: dict[str, tuple[str, go.Figure]], output_path: 
 <body>
   <header>
     <h1>Focused Community Evolution</h1>
-    <p>Each tab follows one persistent community through time. Blue circles are stable members, green diamonds are new members, and red x-marks are members that departed since the previous snapshot.</p>
+    <p>Each tab follows one strongest Jaccard match path through time. Blue circles are stable members, green diamonds are new members, and red x-marks are members that departed since the previous matched snapshot.</p>
   </header>
   <nav class="tabs">{''.join(tabs)}</nav>
   {''.join(panels)}
@@ -382,7 +393,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--overlap-fraction", type=float, default=0.5)
     parser.add_argument("--max-snapshots", type=int, default=20)
     parser.add_argument("--max-nodes", type=int, default=220)
-    parser.add_argument("--focus-community", default=None, help="Persistent community id to follow, e.g. INTERVAL-0001. Defaults to the largest community in snapshot 0.")
+    parser.add_argument("--focus-community", default=None, help="Local community id in snapshot 0 to follow, e.g. 0. Defaults to the largest community in snapshot 0.")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
