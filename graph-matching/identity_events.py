@@ -14,12 +14,14 @@ from dataclasses import dataclass
 from graph_matching import CommunityRecord, match_pair
 
 
+# Pair a phase-one community record with a future persistent identifier.
 @dataclass
 class IdentifiedCommunity:
     record: CommunityRecord
     persistent_id: str
 
 
+# Future-phase helper that assigns persistent IDs and derives lifecycle events.
 def assign_ids_and_events(
     all_snapshots: list[list[CommunityRecord]],
     approach: str,
@@ -86,6 +88,7 @@ def assign_ids_and_events(
     return assigned_ids, matches_out, events_out
 
 
+# Build one lifecycle-event output row for the future ID/event phase.
 def event_row(
     approach: str,
     event_type: str,

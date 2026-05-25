@@ -2,14 +2,13 @@
 """Temporal community detection and matching for SNAP Email-EU-core.
 
 The pipeline implements the first project phase:
-1. keep the first part of the temporal edge list (days 0-500)
+1. keep the active part of the temporal edge list (days 0-526)
 2. build graph snapshots with several time-window strategies (interval, cumulative, and overlapping)
 3. detect Louvain communities per snapshot
 4. calculate Jaccard similarities and match communities across consecutive snapshots.
 """
 
 from __future__ import annotations
-
 import argparse
 import csv
 import importlib.util
@@ -17,6 +16,7 @@ import json
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
+from math import ceil
 from pathlib import Path
 from typing import Iterable
 
@@ -35,6 +35,7 @@ from networkx.algorithms.community import louvain_communities
 SECONDS_PER_DAY = 24 * 60 * 60
 
 
+# Locate the project root so scripts and notebooks can find the shared dataset.
 def find_project_root(start: Path | None = None) -> Path:
     """Find the folder that contains the shared dataset directory."""
     current = (start or Path(__file__)).resolve()
@@ -49,6 +50,7 @@ def find_project_root(start: Path | None = None) -> Path:
     return Path(__file__).resolve().parent
 
 
+# Store the timestamp range represented by one graph snapshot.
 @dataclass(frozen=True)
 class SnapshotWindow:
     index: int
@@ -56,15 +58,18 @@ class SnapshotWindow:
     start_ts: int
     end_ts: int
 
+    # Convert the snapshot start from seconds to days for readable outputs.
     @property
     def start_day(self) -> float:
         return self.start_ts / SECONDS_PER_DAY
 
+    # Convert the snapshot end from seconds to days for readable outputs.
     @property
     def end_day(self) -> float:
         return self.end_ts / SECONDS_PER_DAY
 
 
+# Store one detected community inside one snapshot before any future ID assignment.
 @dataclass
 class CommunityRecord:
     approach: str
@@ -76,6 +81,7 @@ class CommunityRecord:
     nodes: frozenset[int]
 
 
+# Load the temporal edge list and keep only the active period used in this phase.
 def load_edges(path: Path, cutoff_days: int) -> pd.DataFrame:
     edges = pd.read_csv(path, sep=r"\s+", names=["src", "dst", "ts"], dtype=int)
     cutoff_ts = cutoff_days * SECONDS_PER_DAY
@@ -84,31 +90,48 @@ def load_edges(path: Path, cutoff_days: int) -> pd.DataFrame:
     return edges
 
 
+# Build the snapshot windows for interval, cumulative, or overlapping analyses.
 def make_windows(
     approach: str,
     cutoff_days: int,
     snapshot_days: int,
-    num_snapshots: int,
+    num_snapshots: int | None,
     overlap_fraction: float,
 ) -> list[SnapshotWindow]:
     snapshot_ts = snapshot_days * SECONDS_PER_DAY
     cutoff_ts = cutoff_days * SECONDS_PER_DAY
+    snapshot_count = num_snapshots or ceil(cutoff_ts / snapshot_ts)
 
     if approach == "interval":
         return [
-            SnapshotWindow(i, f"days_{i * snapshot_days}_{(i + 1) * snapshot_days}", i * snapshot_ts, (i + 1) * snapshot_ts)
-            for i in range(num_snapshots)
+            SnapshotWindow(
+                i,
+                f"days_{(i * snapshot_ts) // SECONDS_PER_DAY}_{min((i + 1) * snapshot_ts, cutoff_ts) // SECONDS_PER_DAY}",
+                i * snapshot_ts,
+                min((i + 1) * snapshot_ts, cutoff_ts),
+            )
+            for i in range(snapshot_count)
+            if i * snapshot_ts < cutoff_ts
         ]
 
     if approach == "cumulative":
         return [
-            SnapshotWindow(i, f"days_0_{(i + 1) * snapshot_days}", 0, (i + 1) * snapshot_ts)
-            for i in range(num_snapshots)
+            SnapshotWindow(
+                i,
+                f"days_0_{min((i + 1) * snapshot_ts, cutoff_ts) // SECONDS_PER_DAY}",
+                0,
+                min((i + 1) * snapshot_ts, cutoff_ts),
+            )
+            for i in range(snapshot_count)
+            if i * snapshot_ts < cutoff_ts
         ]
 
     if approach == "overlap":
         if not 0 <= overlap_fraction < 1:
             raise ValueError("overlap_fraction must be in [0, 1).")
+        # With a 50-day snapshot and 0.5 overlap, the stride is 25 days:
+        # [0, 50], [25, 75], [50, 100], ... . In interval notation, this is
+        # equivalent to taking [ts, ts+1] and [ts+1/2, ts+1/2+1].
         stride_ts = max(1, int(snapshot_ts * (1 - overlap_fraction)))
         windows = []
         start_ts = 0
@@ -130,10 +153,12 @@ def make_windows(
     raise ValueError(f"Unknown approach: {approach}")
 
 
+# Select the temporal edges that fall inside one snapshot window.
 def edges_for_window(edges: pd.DataFrame, window: SnapshotWindow) -> pd.DataFrame:
     return edges.loc[(edges["ts"] >= window.start_ts) & (edges["ts"] < window.end_ts)]
 
 
+# Convert a temporal edge slice into an undirected weighted NetworkX graph.
 def build_graph(window_edges: pd.DataFrame) -> nx.Graph:
     graph = nx.Graph()
     if window_edges.empty:
@@ -150,6 +175,7 @@ def build_graph(window_edges: pd.DataFrame) -> nx.Graph:
     return graph
 
 
+# Run Louvain community detection and remove communities smaller than min_size.
 def detect_communities(graph: nx.Graph, seed: int, resolution: float, min_size: int) -> list[frozenset[int]]:
     if graph.number_of_nodes() == 0:
         return []
@@ -159,6 +185,7 @@ def detect_communities(graph: nx.Graph, seed: int, resolution: float, min_size: 
     return sorted(cleaned, key=lambda community: (-len(community), min(community)))
 
 
+# Calculate node-overlap similarity between two communities.
 def jaccard(left: frozenset[int], right: frozenset[int]) -> float:
     union_size = len(left | right)
     if union_size == 0:
@@ -166,6 +193,7 @@ def jaccard(left: frozenset[int], right: frozenset[int]) -> float:
     return len(left & right) / union_size
 
 
+# Compare all communities in two consecutive snapshots and keep matches above the threshold.
 def match_pair(
     previous: list[CommunityRecord],
     current: list[CommunityRecord],
@@ -206,6 +234,7 @@ def match_pair(
     return matches, prev_to_curr, curr_to_prev
 
 
+# Apply pairwise matching across the whole snapshot sequence.
 def match_snapshots(all_snapshots: list[list[CommunityRecord]], threshold: float) -> list[dict]:
     matches_out: list[dict] = []
     for snapshot_index in range(1, len(all_snapshots)):
@@ -216,6 +245,7 @@ def match_snapshots(all_snapshots: list[list[CommunityRecord]], threshold: float
     return matches_out
 
 
+# Write a list of dictionaries to a CSV file with a stable column order.
 def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as handle:
@@ -225,6 +255,7 @@ def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str]) -> None:
             writer.writerow(row)
 
 
+# Run the full phase-one pipeline for one snapshot construction approach.
 def run_approach(
     edges: pd.DataFrame,
     approach: str,
@@ -318,15 +349,16 @@ def run_approach(
     )
 
 
+# Parse command-line options for running the graph matching pipeline.
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run temporal graph matching on SNAP Email-EU-core.")
     project_dir = find_project_root()
     parser.add_argument("--data", type=Path, default=project_dir / "dataset" / "email-Eu-core-temporal.txt")
     parser.add_argument("--output", type=Path, default=Path("outputs/graph_matching"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
-    parser.add_argument("--cutoff-days", type=int, default=500)
+    parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)
-    parser.add_argument("--num-snapshots", type=int, default=10)
+    parser.add_argument("--num-snapshots", type=int, default=None)
     parser.add_argument("--overlap-fraction", type=float, default=0.5)
     parser.add_argument("--match-threshold", type=float, default=0.5)
     parser.add_argument("--min-community-size", type=int, default=3)
@@ -335,6 +367,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# Load the data and run the selected snapshot construction approach or all approaches.
 def main() -> None:
     args = parse_args()
     approaches = ["cumulative", "interval", "overlap"] if args.approach == "all" else [args.approach]

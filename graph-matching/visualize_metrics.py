@@ -16,16 +16,19 @@ from plotly.subplots import make_subplots
 from graph_matching import build_graph, edges_for_window, find_project_root, load_edges, make_windows
 
 
+# Load detected communities and decode their node lists from JSON.
 def load_communities(path: Path) -> pd.DataFrame:
     communities = pd.read_csv(path)
     communities["nodes"] = communities["nodes_json"].apply(json.loads)
     return communities
 
 
+# Return the mean of a list, using 0.0 for empty inputs.
 def safe_mean(values: list[float]) -> float:
     return float(sum(values) / len(values)) if values else 0.0
 
 
+# Return the median of a list, using 0.0 for empty inputs.
 def safe_median(values: list[float]) -> float:
     if not values:
         return 0.0
@@ -36,6 +39,7 @@ def safe_median(values: list[float]) -> float:
     return float((ordered[middle - 1] + ordered[middle]) / 2)
 
 
+# Convert a community-size distribution into an entropy-based effective count.
 def entropy_effective_count(sizes: list[int]) -> float:
     total = sum(sizes)
     if total == 0:
@@ -48,6 +52,7 @@ def entropy_effective_count(sizes: list[int]) -> float:
     return float(math.exp(entropy))
 
 
+# Compute graph-level metrics for one snapshot graph.
 def graph_metrics(graph: nx.Graph, communities: list[set[int]]) -> dict:
     node_count = graph.number_of_nodes()
     edge_count = graph.number_of_edges()
@@ -99,6 +104,7 @@ def graph_metrics(graph: nx.Graph, communities: list[set[int]]) -> dict:
     }
 
 
+# Compute community-level size and internal-density metrics for one snapshot.
 def community_metrics(graph: nx.Graph, communities: list[set[int]]) -> dict:
     sizes = [len(community) for community in communities]
     total_memberships = sum(sizes)
@@ -125,6 +131,7 @@ def community_metrics(graph: nx.Graph, communities: list[set[int]]) -> dict:
     }
 
 
+# Rebuild graphs for one approach and return network/community metric tables.
 def compute_metrics_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     project_root = find_project_root()
     data_path = args.data or project_root / "dataset" / "email-Eu-core-temporal.txt"
@@ -166,6 +173,7 @@ def compute_metrics_for_approach(args: argparse.Namespace, approach: str) -> tup
     return pd.DataFrame(network_rows), pd.DataFrame(community_rows)
 
 
+# Add one metric line to a Plotly subplot.
 def add_line(fig: go.Figure, df: pd.DataFrame, metric: str, row: int, col: int, label: str | None = None) -> None:
     fig.add_trace(
         go.Scatter(
@@ -180,6 +188,7 @@ def add_line(fig: go.Figure, df: pd.DataFrame, metric: str, row: int, col: int, 
     )
 
 
+# Build an optional Plotly dashboard figure from metric tables.
 def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.DataFrame) -> go.Figure:
     fig = make_subplots(
         rows=3,
@@ -231,24 +240,27 @@ def build_dashboard(approach: str, network_df: pd.DataFrame, community_df: pd.Da
     return fig
 
 
+# Compute metrics and package them with a dashboard figure for one approach.
 def build_metric_dashboard_for_approach(args: argparse.Namespace, approach: str) -> tuple[pd.DataFrame, pd.DataFrame, go.Figure]:
     network_df, community_df = compute_metrics_for_approach(args, approach)
     fig = build_dashboard(approach, network_df, community_df)
     return network_df, community_df, fig
 
 
+# Parse command-line options for metric calculation.
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Visualize temporal network and community metrics.")
     parser.add_argument("--data", type=Path, default=None)
     parser.add_argument("--results", type=Path, default=Path("graph-matching/outputs/graph_matching"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
-    parser.add_argument("--cutoff-days", type=int, default=500)
+    parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)
-    parser.add_argument("--num-snapshots", type=int, default=10)
+    parser.add_argument("--num-snapshots", type=int, default=None)
     parser.add_argument("--overlap-fraction", type=float, default=0.5)
     return parser.parse_args()
 
 
+# Print metric row counts for the selected approach or all approaches.
 def main() -> None:
     args = parse_args()
     approaches = ["cumulative", "interval", "overlap"] if args.approach == "all" else [args.approach]

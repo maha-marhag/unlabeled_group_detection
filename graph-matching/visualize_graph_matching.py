@@ -16,6 +16,7 @@ from plotly.io import to_html
 from graph_matching import build_graph, edges_for_window, load_edges, make_windows
 
 
+# Locate the project root so the visualizer can find the shared dataset.
 def find_project_root(start: Path | None = None) -> Path:
     current = (start or Path(__file__)).resolve()
     if current.is_file():
@@ -35,18 +36,21 @@ STATUS_STYLE = {
 }
 
 
+# Load detected communities and decode their node lists from JSON.
 def load_communities(path: Path) -> pd.DataFrame:
     communities = pd.read_csv(path)
     communities["nodes"] = communities["nodes_json"].apply(json.loads)
     return communities
 
 
+# Load Jaccard matches; return an empty table if matches are missing.
 def load_matches(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame(columns=["from_snapshot", "to_snapshot", "from_local_id", "to_local_id", "jaccard"])
     return pd.read_csv(path)
 
 
+# Create the Plotly trace that draws weighted email edges.
 def edge_trace(graph: nx.Graph, pos: dict[int, tuple[float, float]]) -> go.Scatter:
     x_values = []
     y_values = []
@@ -68,6 +72,7 @@ def edge_trace(graph: nx.Graph, pos: dict[int, tuple[float, float]]) -> go.Scatt
     )
 
 
+# Pick the starting local community in snapshot 0 for the focused path.
 def select_focus_local_id(communities: pd.DataFrame, focus_community: str | None) -> int:
     if focus_community is not None:
         return int(focus_community)
@@ -81,6 +86,7 @@ def select_focus_local_id(communities: pd.DataFrame, focus_community: str | None
     return int(largest["local_id"])
 
 
+# Follow the strongest Jaccard match from one snapshot to the next.
 def trace_matched_path(matches: pd.DataFrame, start_local_id: int, max_snapshot: int) -> dict[int, int]:
     path = {0: start_local_id}
     current_local_id = start_local_id
@@ -98,6 +104,7 @@ def trace_matched_path(matches: pd.DataFrame, start_local_id: int, max_snapshot:
     return path
 
 
+# Format a short label for the matched local-community path.
 def focus_label(approach: str, path: dict[int, int]) -> str:
     if not path:
         return f"{approach}: no matched path"
@@ -105,6 +112,7 @@ def focus_label(approach: str, path: dict[int, int]) -> str:
     return f"{approach}: S{first_snapshot}/C{path[first_snapshot]}"
 
 
+# Return the community on the focused path for a specific snapshot.
 def focus_group_at_snapshot(communities: pd.DataFrame, snapshot_index: int, path: dict[int, int]) -> dict | None:
     if snapshot_index not in path:
         return None
@@ -126,6 +134,7 @@ def focus_group_at_snapshot(communities: pd.DataFrame, snapshot_index: int, path
     }
 
 
+# Create the Plotly node trace for stable, new, or departed members.
 def member_trace(
     graph: nx.Graph,
     pos: dict[int, tuple[float, float]],
@@ -165,6 +174,7 @@ def member_trace(
     )
 
 
+# Build one animation frame for the focused matched-community path.
 def make_network_frame(
     graph: nx.Graph,
     communities: pd.DataFrame,
@@ -206,7 +216,7 @@ def make_network_frame(
         departed_nodes &= keep_nodes
 
     if focus_graph.number_of_nodes() == 0:
-        return [], f"{focus_community} has no visible nodes in this snapshot"
+        return [], "The tracked matched path has no visible nodes in this snapshot"
 
     pos = nx.spring_layout(focus_graph, seed=seed, weight="weight", k=0.45, iterations=110)
     traces: list[go.Scatter] = [edge_trace(focus_graph, pos)]
@@ -227,6 +237,7 @@ def make_network_frame(
     return traces, note
 
 
+# Build the complete interactive Plotly figure for one approach.
 def build_interactive_network_figure(
     approach: str,
     edges: pd.DataFrame,
@@ -290,6 +301,7 @@ def build_interactive_network_figure(
     return fig
 
 
+# Load data/results and construct the interactive figure for one approach.
 def build_approach_figure(args: argparse.Namespace, approach: str) -> tuple[str, go.Figure]:
     project_root = find_project_root()
     data_path = args.data or project_root / "dataset" / "email-Eu-core-temporal.txt"
@@ -327,6 +339,7 @@ def build_approach_figure(args: argparse.Namespace, approach: str) -> tuple[str,
     return label, fig
 
 
+# Write all approach figures into one tabbed HTML file.
 def write_combined_html(figures: dict[str, tuple[str, go.Figure]], output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tabs = []
@@ -381,15 +394,16 @@ def write_combined_html(figures: dict[str, tuple[str, go.Figure]], output_path: 
     output_path.write_text(html)
 
 
+# Parse command-line options for the interactive visualizer.
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create interactive node-link network visualizations.")
     parser.add_argument("--data", type=Path, default=None)
     parser.add_argument("--results", type=Path, default=Path("graph-matching/outputs/graph_matching"))
     parser.add_argument("--combined-output", type=Path, default=Path("graph-matching/outputs/visualizations/focused_community_evolution.html"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
-    parser.add_argument("--cutoff-days", type=int, default=500)
+    parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)
-    parser.add_argument("--num-snapshots", type=int, default=10)
+    parser.add_argument("--num-snapshots", type=int, default=None)
     parser.add_argument("--overlap-fraction", type=float, default=0.5)
     parser.add_argument("--max-snapshots", type=int, default=20)
     parser.add_argument("--max-nodes", type=int, default=220)
@@ -398,6 +412,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# Build visualizations for the selected approach or all approaches.
 def main() -> None:
     args = parse_args()
     approaches = ["cumulative", "interval", "overlap"] if args.approach == "all" else [args.approach]
