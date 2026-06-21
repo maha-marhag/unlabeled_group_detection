@@ -8,7 +8,7 @@ if str(MODULE_DIR) not in sys.path:
     sys.path.insert(0, str(MODULE_DIR))
 
 from graph_matching import CommunityRecord
-from identity_events import assign_ids
+from identity_events import assign_ids, build_identity_groups
 
 
 def community(snapshot: int, local_id: int, nodes: set[int]) -> CommunityRecord:
@@ -23,6 +23,29 @@ def community(snapshot: int, local_id: int, nodes: set[int]) -> CommunityRecord:
     )
 
 
+def groups_for(
+    snapshots: list[list[CommunityRecord]],
+) -> tuple[dict[tuple[int, int], str], dict[str, str], list[dict]]:
+    ids, transitions = assign_ids(snapshots, "interval")
+    _, observation_to_group = build_identity_groups(snapshots, ids, transitions)
+    return ids, observation_to_group, transitions
+
+
+def group_of(
+    ids: dict[tuple[int, int], str],
+    observation_to_group: dict[str, str],
+    key: tuple[int, int],
+) -> str:
+    return observation_to_group[ids[key]]
+
+
+def inherited_from(transitions: list[dict], snapshot: int, local_id: int) -> str:
+    for transition in transitions:
+        if transition["snapshot_index"] == snapshot and transition["local_id"] == local_id:
+            return transition["from_observation_id"]
+    return ""
+
+
 def test_split_larger_child_inherits_and_smaller_child_is_new() -> None:
     snapshots = [
         [community(0, 0, set(range(10)))],
@@ -32,10 +55,13 @@ def test_split_larger_child_inherits_and_smaller_child_is_new() -> None:
         ],
     ]
 
-    ids, _ = assign_ids(snapshots, "interval")
+    ids, observation_to_group, transitions = groups_for(snapshots)
 
-    assert ids[(1, 0)] == ids[(0, 0)]
-    assert ids[(1, 1)] != ids[(0, 0)]
+    assert ids[(0, 0)] == "INT-C0001"
+    assert ids[(1, 0)] == "INT-C0101"
+    assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 1)) != group_of(ids, observation_to_group, (0, 0))
+    assert inherited_from(transitions, 1, 0) == ids[(0, 0)]
 
 
 def test_merge_larger_parent_contribution_inherits() -> None:
@@ -47,10 +73,11 @@ def test_merge_larger_parent_contribution_inherits() -> None:
         [community(1, 0, set(range(10)))],
     ]
 
-    ids, _ = assign_ids(snapshots, "interval")
+    ids, observation_to_group, transitions = groups_for(snapshots)
 
-    assert ids[(1, 0)] == ids[(0, 0)]
-    assert ids[(1, 0)] != ids[(0, 1)]
+    assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 0)) != group_of(ids, observation_to_group, (0, 1))
+    assert inherited_from(transitions, 1, 0) == ids[(0, 0)]
 
 
 def test_exact_split_tie_creates_new_ids_for_both_children() -> None:
@@ -62,11 +89,11 @@ def test_exact_split_tie_creates_new_ids_for_both_children() -> None:
         ],
     ]
 
-    ids, _ = assign_ids(snapshots, "interval")
+    ids, observation_to_group, _ = groups_for(snapshots)
 
-    assert ids[(1, 0)] != ids[(0, 0)]
-    assert ids[(1, 1)] != ids[(0, 0)]
-    assert ids[(1, 0)] != ids[(1, 1)]
+    assert group_of(ids, observation_to_group, (1, 0)) != group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 1)) != group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 0)) != group_of(ids, observation_to_group, (1, 1))
 
 
 def test_when_two_children_exceed_threshold_unique_higher_score_wins() -> None:
@@ -78,21 +105,21 @@ def test_when_two_children_exceed_threshold_unique_higher_score_wins() -> None:
         ],
     ]
 
-    ids, _ = assign_ids(snapshots, "interval")
+    ids, observation_to_group, _ = groups_for(snapshots)
 
-    assert ids[(1, 0)] == ids[(0, 0)]
-    assert ids[(1, 1)] != ids[(0, 0)]
+    assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 1)) != group_of(ids, observation_to_group, (0, 0))
 
 
 def test_below_threshold_overlap_does_not_transfer_id() -> None:
     snapshots = [
         [community(0, 0, set(range(10)))],
-        [community(1, 0, {0, 1, 2, 10, 11, 12, 13})],
+        [community(1, 0, {0, 1, 10, 11, 12, 13, 14})],
     ]
 
-    ids, _ = assign_ids(snapshots, "interval")
+    ids, observation_to_group, _ = groups_for(snapshots)
 
-    assert ids[(1, 0)] != ids[(0, 0)]
+    assert group_of(ids, observation_to_group, (1, 0)) != group_of(ids, observation_to_group, (0, 0))
 
 
 def test_simultaneous_split_and_merge_uses_mutual_nomination() -> None:
@@ -107,13 +134,14 @@ def test_simultaneous_split_and_merge_uses_mutual_nomination() -> None:
         ],
     ]
 
-    ids, _ = assign_ids(
+    ids, transitions = assign_ids(
         snapshots,
         "interval",
         jaccard_threshold=0.4,
         stability_threshold=0.5,
     )
+    _, observation_to_group = build_identity_groups(snapshots, ids, transitions)
 
-    assert ids[(1, 0)] == ids[(0, 0)]
-    assert ids[(1, 1)] == ids[(0, 1)]
-    assert len({ids[(1, 0)], ids[(1, 1)]}) == 2
+    assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))
+    assert group_of(ids, observation_to_group, (1, 1)) == group_of(ids, observation_to_group, (0, 1))
+    assert len({group_of(ids, observation_to_group, (1, 0)), group_of(ids, observation_to_group, (1, 1))}) == 2

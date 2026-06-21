@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
-"""Assign persistent IDs to communities across temporal snapshots.
+"""Assign observation IDs and identity groups to temporal communities.
 
-Identity transfer uses three conditions:
-
-1. Jaccard similarity meets the configured graph-matching threshold.
-2. The previous community uniquely nominates the current community using
-   prospective stability: overlap / previous size.
-3. The current community uniquely nominates the previous community using
-   retrospective stability: overlap / current size.
-
-Requiring mutual, unique nominations keeps persistent IDs one-to-one through
-splits, merges, and combinations of both. Ties do not transfer an ID.
+Each detected community receives a snapshot-scoped observation ID:
+``PREFIX-CXXYY`` where ``XX`` is the snapshot index and ``YY`` is the
+1-based community number inside that snapshot. Identity transfer is recorded
+separately as event evidence, so the outputs can distinguish unlabeled dynamic
+groups from final labeled communities.
 """
 
 from __future__ import annotations
@@ -45,10 +40,15 @@ class IdentityRelation:
     retrospective_stability: float
 
 
-def persistent_id(approach: str, sequence: int) -> str:
-    """Create an opaque, deterministic ID scoped to one snapshot approach."""
+def observation_id(approach: str, snapshot_index: int, local_id: int) -> str:
+    """Create a snapshot-scoped ID such as OVL-C0205."""
     prefix = APPROACH_PREFIXES.get(approach, approach[:3].upper())
-    return f"{prefix}-C{sequence:04d}"
+    return f"{prefix}-C{snapshot_index:02d}{local_id + 1:02d}"
+
+
+def persistent_id(approach: str, sequence: int) -> str:
+    """Backward-compatible final-group ID helper."""
+    return f"c{sequence:02d}"
 
 
 def identity_relations(
@@ -75,48 +75,195 @@ def identity_relations(
     return relations
 
 
-def unique_best(
+def eligible_relations(
     relations: list[IdentityRelation],
     score_name: str,
     threshold: float,
-) -> IdentityRelation | None:
-    """Return a unique best relation above threshold, or None on a tie."""
-    eligible = [
+) -> list[IdentityRelation]:
+    """Return relations that pass the requested directional threshold."""
+    return [
         relation
         for relation in relations
         if getattr(relation, score_name) >= threshold
     ]
-    if not eligible:
+
+
+def unique_best(relations: list[IdentityRelation], score_name: str) -> IdentityRelation | None:
+    """Return a unique best relation, or None on a tie."""
+    if not relations:
         return None
 
-    best_score = max(getattr(relation, score_name) for relation in eligible)
+    best_score = max(getattr(relation, score_name) for relation in relations)
     winners = [
         relation
-        for relation in eligible
+        for relation in relations
         if getattr(relation, score_name) == best_score
     ]
     return winners[0] if len(winners) == 1 else None
 
 
+def best_overlaps_to_target(
+    source: CommunityRecord,
+    target_nodes: frozenset[int],
+    next_snapshot: list[CommunityRecord],
+) -> list[tuple[CommunityRecord, float]]:
+    """Find next-step communities that best preserve source nodes in a target."""
+    scored = []
+    for candidate in next_snapshot:
+        overlap = len(candidate.nodes & target_nodes)
+        if overlap == 0:
+            continue
+        scored.append((candidate, overlap / len(target_nodes)))
+    if not scored:
+        return []
+
+    best_score = max(score for _, score in scored)
+    return [(candidate, score) for candidate, score in scored if score == best_score]
+
+
+def break_forward_tie(
+    all_snapshots: list[list[CommunityRecord]],
+    tied_relations: list[IdentityRelation],
+    origin_nodes: frozenset[int],
+    start_snapshot_index: int,
+) -> IdentityRelation | None:
+    """Walk forward one snapshot at a time until a tied branch separates."""
+    active: dict[int, list[CommunityRecord]] = {
+        index: [relation.current]
+        for index, relation in enumerate(tied_relations)
+    }
+
+    for snapshot_index in range(start_snapshot_index, len(all_snapshots)):
+        scores = {}
+        next_active: dict[int, list[CommunityRecord]] = {}
+
+        for index, communities in active.items():
+            branch_score = max(
+                (len(community.nodes & origin_nodes) / len(origin_nodes))
+                for community in communities
+            )
+            scores[index] = branch_score
+
+            if snapshot_index + 1 < len(all_snapshots):
+                descendants = []
+                for community in communities:
+                    descendants.extend(
+                        candidate
+                        for candidate, _ in best_overlaps_to_target(
+                            community,
+                            origin_nodes,
+                            all_snapshots[snapshot_index + 1],
+                        )
+                    )
+                if descendants:
+                    next_active[index] = descendants
+
+        best_score = max(scores.values())
+        winners = [index for index, score in scores.items() if score == best_score]
+        if len(winners) == 1:
+            return tied_relations[winners[0]]
+        if not next_active:
+            return None
+        active = {index: next_active[index] for index in winners if index in next_active}
+        if len(active) <= 1:
+            return tied_relations[next(iter(active))] if active else None
+
+    return None
+
+
+def break_backward_tie(
+    all_snapshots: list[list[CommunityRecord]],
+    tied_relations: list[IdentityRelation],
+    origin_nodes: frozenset[int],
+    previous_snapshot_index: int,
+) -> IdentityRelation | None:
+    """Walk backward one snapshot at a time until tied parents separate."""
+    active: dict[int, list[CommunityRecord]] = {
+        index: [relation.previous]
+        for index, relation in enumerate(tied_relations)
+    }
+
+    for snapshot_index in range(previous_snapshot_index, -1, -1):
+        scores = {}
+        next_active: dict[int, list[CommunityRecord]] = {}
+        for index, communities in active.items():
+            branch_score = max(
+                (len(community.nodes & origin_nodes) / len(origin_nodes))
+                for community in communities
+            )
+            scores[index] = branch_score
+
+            if snapshot_index - 1 >= 0:
+                ancestors = []
+                for community in communities:
+                    ancestors.extend(
+                        candidate
+                        for candidate, _ in best_overlaps_to_target(
+                            community,
+                            origin_nodes,
+                            all_snapshots[snapshot_index - 1],
+                        )
+                    )
+                if ancestors:
+                    next_active[index] = ancestors
+
+        best_score = max(scores.values())
+        winners = [index for index, score in scores.items() if score == best_score]
+        if len(winners) == 1:
+            return tied_relations[winners[0]]
+        if not next_active:
+            return None
+        active = {index: next_active[index] for index in winners if index in next_active}
+        if len(active) <= 1:
+            return tied_relations[next(iter(active))] if active else None
+
+    return None
+
+
+def choose_best_relation(
+    relations: list[IdentityRelation],
+    score_name: str,
+    all_snapshots: list[list[CommunityRecord]],
+    snapshot_index: int,
+    origin_nodes: frozenset[int],
+    direction: str,
+) -> IdentityRelation | None:
+    """Choose the best relation and resolve exact ties stepwise."""
+    best = unique_best(relations, score_name)
+    if best is not None or not relations:
+        return best
+
+    best_score = max(getattr(relation, score_name) for relation in relations)
+    tied = [
+        relation
+        for relation in relations
+        if getattr(relation, score_name) == best_score
+    ]
+    if direction == "forward":
+        return break_forward_tie(all_snapshots, tied, origin_nodes, snapshot_index)
+    return break_backward_tie(all_snapshots, tied, origin_nodes, snapshot_index - 1)
+
+
 def assign_ids(
     all_snapshots: list[list[CommunityRecord]],
     approach: str,
-    jaccard_threshold: float = 0.5,
-    stability_threshold: float = 0.5,
+    jaccard_threshold: float = 0.0,
+    stability_threshold: float = 0.4,
 ) -> tuple[dict[tuple[int, int], str], list[dict]]:
-    """Assign persistent IDs and return pairwise identity-decision rows."""
-    next_sequence = 1
+    """Assign observation IDs and return pairwise identity-decision rows."""
     assigned_ids: dict[tuple[int, int], str] = {}
     transitions: list[dict] = []
 
     if not all_snapshots:
         return assigned_ids, transitions
 
-    for community in all_snapshots[0]:
-        assigned_ids[(community.snapshot_index, community.local_id)] = persistent_id(
-            approach, next_sequence
-        )
-        next_sequence += 1
+    for snapshot in all_snapshots:
+        for community in snapshot:
+            assigned_ids[(community.snapshot_index, community.local_id)] = observation_id(
+                approach,
+                community.snapshot_index,
+                community.local_id,
+            )
 
     for snapshot_index in range(1, len(all_snapshots)):
         previous = all_snapshots[snapshot_index - 1]
@@ -132,48 +279,79 @@ def assign_ids(
             by_current[relation.current.local_id].append(relation)
 
         prospective_nominees = {
-            prev.local_id: unique_best(
-                by_previous.get(prev.local_id, []),
+            prev.local_id: choose_best_relation(
+                eligible_relations(
+                    by_previous.get(prev.local_id, []),
+                    "prospective_stability",
+                    stability_threshold,
+                ),
                 "prospective_stability",
-                stability_threshold,
+                all_snapshots,
+                snapshot_index,
+                prev.nodes,
+                "forward",
             )
             for prev in previous
         }
         retrospective_nominees = {
-            curr.local_id: unique_best(
-                by_current.get(curr.local_id, []),
+            curr.local_id: choose_best_relation(
+                eligible_relations(
+                    by_current.get(curr.local_id, []),
+                    "retrospective_stability",
+                    stability_threshold,
+                ),
                 "retrospective_stability",
-                stability_threshold,
+                all_snapshots,
+                snapshot_index,
+                curr.nodes,
+                "backward",
             )
             for curr in current
         }
 
         for curr in current:
-            retrospective_choice = retrospective_nominees[curr.local_id]
             inherited_from: CommunityRecord | None = None
             winning_relation: IdentityRelation | None = None
+            decision = "new"
 
-            if retrospective_choice is not None:
-                prev = retrospective_choice.previous
-                prospective_choice = prospective_nominees[prev.local_id]
+            parent_relations = by_current.get(curr.local_id, [])
+            if len(parent_relations) == 1:
+                candidate = parent_relations[0]
                 if (
-                    prospective_choice is not None
-                    and prospective_choice.current.local_id == curr.local_id
+                    candidate.retrospective_stability >= stability_threshold
+                    or candidate.prospective_stability >= stability_threshold
                 ):
-                    inherited_from = prev
-                    winning_relation = retrospective_choice
+                    prospective_choice = prospective_nominees[candidate.previous.local_id]
+                    parent_has_split = len(by_previous.get(candidate.previous.local_id, [])) > 1
+                    if (
+                        not parent_has_split
+                        or (
+                            prospective_choice is not None
+                            and prospective_choice.current.local_id == curr.local_id
+                        )
+                    ):
+                        inherited_from = candidate.previous
+                        winning_relation = candidate
+            elif len(parent_relations) > 1:
+                retrospective_choice = retrospective_nominees[curr.local_id]
+                if retrospective_choice is not None:
+                    prev = retrospective_choice.previous
+                    prospective_choice = prospective_nominees[prev.local_id]
+                    concurrent_split_merge = len(by_previous.get(prev.local_id, [])) > 1
+                    if (
+                        not concurrent_split_merge
+                        or (
+                            prospective_choice is not None
+                            and prospective_choice.current.local_id == curr.local_id
+                        )
+                    ):
+                        inherited_from = prev
+                        winning_relation = retrospective_choice
 
-            if inherited_from is None:
-                current_id = persistent_id(approach, next_sequence)
-                next_sequence += 1
-                decision = "new"
-            else:
-                current_id = assigned_ids[
-                    (inherited_from.snapshot_index, inherited_from.local_id)
-                ]
+            if inherited_from is not None:
                 decision = "inherited"
 
-            assigned_ids[(curr.snapshot_index, curr.local_id)] = current_id
+            current_id = assigned_ids[(curr.snapshot_index, curr.local_id)]
             transitions.append(
                 transition_row(
                     approach=approach,
@@ -182,11 +360,151 @@ def assign_ids(
                     inherited_from=inherited_from,
                     relation=winning_relation,
                     decision=decision,
-                    candidate_relations=by_current.get(curr.local_id, []),
+                    candidate_relations=parent_relations,
+                    assigned_ids=assigned_ids,
                 )
             )
 
     return assigned_ids, transitions
+
+
+def build_identity_groups(
+    snapshots: list[list[CommunityRecord]],
+    assigned_ids: dict[tuple[int, int], str],
+    transitions: list[dict],
+) -> tuple[dict[str, dict], dict[str, str]]:
+    """Assemble inherited observation IDs into identity groups."""
+    parent: dict[str, str] = {}
+
+    def find(item: str) -> str:
+        parent.setdefault(item, item)
+        while parent[item] != item:
+            parent[item] = parent[parent[item]]
+            item = parent[item]
+        return item
+
+    def union(left: str, right: str) -> None:
+        left_root = find(left)
+        right_root = find(right)
+        if left_root != right_root:
+            parent[right_root] = left_root
+
+    for snapshot in snapshots:
+        for community in snapshot:
+            find(assigned_ids[(community.snapshot_index, community.local_id)])
+
+    for transition in transitions:
+        if transition["decision"] == "inherited" and transition["from_observation_id"]:
+            union(transition["from_observation_id"], transition["observation_id"])
+
+    members_by_root: dict[str, list[CommunityRecord]] = defaultdict(list)
+    for snapshot in snapshots:
+        for community in snapshot:
+            cid = assigned_ids[(community.snapshot_index, community.local_id)]
+            members_by_root[find(cid)].append(community)
+
+    last_snapshot = len(snapshots) - 1
+    alive_roots = []
+    for root, members in members_by_root.items():
+        if any(member.snapshot_index == last_snapshot for member in members):
+            final_member = sorted(
+                [member for member in members if member.snapshot_index == last_snapshot],
+                key=lambda item: item.local_id,
+            )[0]
+            alive_roots.append((final_member.local_id, root))
+
+    final_label_by_root = {
+        root: persistent_id("", index)
+        for index, (_, root) in enumerate(sorted(alive_roots), start=1)
+    }
+
+    groups = {}
+    observation_to_group = {}
+    for root, members in members_by_root.items():
+        ordered = sorted(members, key=lambda item: (item.snapshot_index, item.local_id))
+        observation_ids = [
+            assigned_ids[(member.snapshot_index, member.local_id)]
+            for member in ordered
+        ]
+        group_id = final_label_by_root.get(root, f"dead-{root}")
+        status = "alive" if root in final_label_by_root else "dead"
+        group = {
+            "identity_group": group_id,
+            "status": status,
+            "birth_snapshot": ordered[0].snapshot_index,
+            "last_snapshot": ordered[-1].snapshot_index,
+            "lifespan_snapshots": len({member.snapshot_index for member in ordered}),
+            "observation_ids": "=".join(observation_ids),
+            "observation_count": len(observation_ids),
+        }
+        groups[group_id] = group
+        for observation in observation_ids:
+            observation_to_group[observation] = group_id
+
+    return groups, observation_to_group
+
+
+def final_community_rows(
+    groups: dict[str, dict],
+    snapshots: list[list[CommunityRecord]],
+    assigned_ids: dict[tuple[int, int], str],
+    observation_to_group: dict[str, str],
+) -> Iterable[dict]:
+    """Return only identity groups alive in the final snapshot."""
+    final_size_by_group = {}
+    if snapshots:
+        for community in snapshots[-1]:
+            observation = assigned_ids[(community.snapshot_index, community.local_id)]
+            final_size_by_group[observation_to_group[observation]] = len(community.nodes)
+
+    for group in sorted(
+        (item for item in groups.values() if item["status"] == "alive"),
+        key=lambda item: item["identity_group"],
+    ):
+        yield {
+            "identity_group": group["identity_group"],
+            "birth_snapshot": group["birth_snapshot"],
+            "last_snapshot": group["last_snapshot"],
+            "lifespan_snapshots": group["lifespan_snapshots"],
+            "final_size": final_size_by_group[group["identity_group"]],
+            "observation_ids": group["observation_ids"],
+            "observation_count": group["observation_count"],
+            "events": "",
+        }
+
+
+def final_labeled_community_rows(
+    snapshots: list[list[CommunityRecord]],
+    assigned_ids: dict[tuple[int, int], str],
+    observation_to_group: dict[str, str],
+) -> Iterable[dict]:
+    """Return final-snapshot communities with final labels and member nodes."""
+    if not snapshots:
+        return
+
+    final_snapshot = snapshots[-1]
+    for community in sorted(final_snapshot, key=lambda item: item.local_id):
+        current_observation_id = assigned_ids[
+            (community.snapshot_index, community.local_id)
+        ]
+        yield {
+            "identity_group": observation_to_group[current_observation_id],
+            "final_observation_id": current_observation_id,
+            "snapshot_index": community.snapshot_index,
+            "snapshot_label": community.snapshot_label,
+            "local_id": community.local_id,
+            "size": len(community.nodes),
+            "nodes_json": json.dumps(sorted(community.nodes)),
+        }
+
+
+def identity_group_rows(groups: dict[str, dict]) -> Iterable[dict]:
+    """Return every assembled identity group, including dead groups."""
+    for group in sorted(
+        groups.values(),
+        key=lambda item: (item["status"] != "alive", item["identity_group"]),
+    ):
+        yield group
 
 
 def transition_row(
@@ -197,19 +515,24 @@ def transition_row(
     relation: IdentityRelation | None,
     decision: str,
     candidate_relations: list[IdentityRelation],
+    assigned_ids: dict[tuple[int, int], str],
 ) -> dict:
     """Build one auditable identity-decision row."""
     return {
         "approach": approach,
         "snapshot_index": current.snapshot_index,
         "local_id": current.local_id,
-        "persistent_id": current_id,
+        "observation_id": current_id,
         "decision": decision,
         "from_snapshot": (
             inherited_from.snapshot_index if inherited_from is not None else ""
         ),
         "from_local_id": inherited_from.local_id if inherited_from is not None else "",
-        "from_persistent_id": current_id if inherited_from is not None else "",
+        "from_observation_id": (
+            assigned_ids[(inherited_from.snapshot_index, inherited_from.local_id)]
+            if inherited_from is not None
+            else ""
+        ),
         "overlap_size": relation.overlap_size if relation is not None else "",
         "jaccard": f"{relation.jaccard:.6f}" if relation is not None else "",
         "prospective_stability": (
@@ -220,6 +543,17 @@ def transition_row(
         ),
         "candidate_parent_local_ids": ";".join(
             str(item.previous.local_id)
+            for item in sorted(
+                candidate_relations,
+                key=lambda item: (
+                    -item.retrospective_stability,
+                    -item.prospective_stability,
+                    item.previous.local_id,
+                ),
+            )
+        ),
+        "candidate_parent_observation_ids": ";".join(
+            assigned_ids[(item.previous.snapshot_index, item.previous.local_id)]
             for item in sorted(
                 candidate_relations,
                 key=lambda item: (
@@ -266,8 +600,9 @@ def load_snapshots(path: Path) -> tuple[str, list[list[CommunityRecord]]]:
 def identified_community_rows(
     snapshots: list[list[CommunityRecord]],
     assigned_ids: dict[tuple[int, int], str],
+    observation_to_group: dict[str, str],
 ) -> Iterable[dict]:
-    """Add persistent IDs to the phase-one community records."""
+    """Add observation IDs and final identity groups to community records."""
     for snapshot in snapshots:
         for community in snapshot:
             yield {
@@ -277,8 +612,11 @@ def identified_community_rows(
                 "window_start_ts": community.window_start_ts,
                 "window_end_ts": community.window_end_ts,
                 "local_id": community.local_id,
-                "persistent_id": assigned_ids[
+                "observation_id": assigned_ids[
                     (community.snapshot_index, community.local_id)
+                ],
+                "identity_group": observation_to_group[
+                    assigned_ids[(community.snapshot_index, community.local_id)]
                 ],
                 "size": len(community.nodes),
                 "nodes_json": json.dumps(sorted(community.nodes)),
@@ -306,10 +644,15 @@ def run_approach(
         jaccard_threshold=jaccard_threshold,
         stability_threshold=stability_threshold,
     )
+    groups, observation_to_group = build_identity_groups(
+        snapshots,
+        assigned_ids,
+        transitions,
+    )
     base = output_dir / approach
     write_csv(
         base / "identified_communities.csv",
-        identified_community_rows(snapshots, assigned_ids),
+        identified_community_rows(snapshots, assigned_ids, observation_to_group),
         [
             "approach",
             "snapshot_index",
@@ -317,7 +660,8 @@ def run_approach(
             "window_start_ts",
             "window_end_ts",
             "local_id",
-            "persistent_id",
+            "observation_id",
+            "identity_group",
             "size",
             "nodes_json",
         ],
@@ -329,16 +673,55 @@ def run_approach(
             "approach",
             "snapshot_index",
             "local_id",
-            "persistent_id",
+            "observation_id",
             "decision",
             "from_snapshot",
             "from_local_id",
-            "from_persistent_id",
+            "from_observation_id",
             "overlap_size",
             "jaccard",
             "prospective_stability",
             "retrospective_stability",
             "candidate_parent_local_ids",
+            "candidate_parent_observation_ids",
+        ],
+    )
+    group_fields = [
+        "identity_group",
+        "status",
+            "birth_snapshot",
+            "last_snapshot",
+            "lifespan_snapshots",
+            "observation_ids",
+            "observation_count",
+        ]
+    final_group_fields = [
+        "identity_group",
+        "birth_snapshot",
+        "last_snapshot",
+        "lifespan_snapshots",
+        "final_size",
+        "observation_ids",
+        "observation_count",
+        "events",
+    ]
+    write_csv(base / "identity_groups.csv", identity_group_rows(groups), group_fields)
+    write_csv(
+        base / "final_communities.csv",
+        final_community_rows(groups, snapshots, assigned_ids, observation_to_group),
+        final_group_fields,
+    )
+    write_csv(
+        base / "final_labeled_communities.csv",
+        final_labeled_community_rows(snapshots, assigned_ids, observation_to_group),
+        [
+            "identity_group",
+            "final_observation_id",
+            "snapshot_index",
+            "snapshot_label",
+            "local_id",
+            "size",
+            "nodes_json",
         ],
     )
 
@@ -359,8 +742,8 @@ def parse_args() -> argparse.Namespace:
         choices=["interval", "cumulative", "overlap", "all"],
         default="all",
     )
-    parser.add_argument("--jaccard-threshold", type=float, default=0.5)
-    parser.add_argument("--stability-threshold", type=float, default=0.5)
+    parser.add_argument("--jaccard-threshold", type=float, default=0.0)
+    parser.add_argument("--stability-threshold", type=float, default=0.4)
     return parser.parse_args()
 
 
