@@ -45,6 +45,8 @@ communities:
   `final_size` column is the number of nodes in the final community;
   `observation_count` is the number of snapshot observations in the lifespan
   chain.
+- `final_communities_all_approaches.csv` combines the final-community rows for
+  cumulative, interval, and overlap into one table with an `approach` column.
 - `final_labeled_communities.csv` is the main final output for downstream
   work: one row per community found in the last snapshot, with its final label,
   final observation ID, size, and member list in `nodes_json`.
@@ -73,3 +75,27 @@ The notebook covers:
 
 - network size, density, transitivity, clustering, connected components, degree, weighted degree, and modularity
 - community count, mean/median/max size, largest community share, effective community count, and internal density
+
+## Visualize Final Community Transitions
+
+```bash
+python graph-matching/visualize_final_transitions.py --groups-per-approach 3
+python graph-matching/visualize_transition_ego_graphs.py --groups-per-approach 3
+```
+
+These write:
+
+```text
+graph-matching/outputs/visualizations/final_community_transition_events.html
+graph-matching/outputs/visualizations/branching_transition_graphs.html
+```
+
+The figure shows representative final labeled groups for cumulative, interval,
+and overlap. Each line follows the group's observation IDs over snapshots, and
+diamond markers show birth, continuation, split, and merge events at their
+snapshot transitions.
+
+`branching_transition_graphs.html` shows the split/merge structure around each
+selected final group: dark nodes are the selected final group's own observation
+chain, gray nodes are related communities pulled into the same transition
+events, and colored edges show continuation, split, and merge relationships.

@@ -18,6 +18,7 @@ A complex transition may contain both split and merge events.
 from __future__ import annotations
 
 import argparse
+import csv
 from collections import defaultdict
 from pathlib import Path
 
@@ -545,6 +546,34 @@ def run_approach(
     )
 
 
+def combine_final_communities(output_dir: Path, approaches: list[str]) -> None:
+    """Write one final-community table containing every selected approach."""
+    rows = []
+    for approach in approaches:
+        path = output_dir / approach / "final_communities.csv"
+        if not path.exists():
+            continue
+        with path.open(newline="") as handle:
+            for row in csv.DictReader(handle):
+                rows.append({"approach": approach, **row})
+
+    write_csv(
+        output_dir / "final_communities_all_approaches.csv",
+        rows,
+        [
+            "approach",
+            "identity_group",
+            "birth_snapshot",
+            "last_snapshot",
+            "lifespan_snapshots",
+            "final_size",
+            "observation_ids",
+            "observation_count",
+            "events",
+        ],
+    )
+
+
 def parse_args() -> argparse.Namespace:
     project_dir = find_project_root()
     default_input = project_dir / "code" / "graph-matching" / "outputs" / "graph_matching"
@@ -586,6 +615,7 @@ def main() -> None:
             jaccard_threshold=args.jaccard_threshold,
             stability_threshold=args.stability_threshold,
         )
+    combine_final_communities(args.output, approaches)
 
 
 if __name__ == "__main__":
