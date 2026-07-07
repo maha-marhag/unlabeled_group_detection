@@ -99,3 +99,34 @@ snapshot transitions.
 selected final group: dark nodes are the selected final group's own observation
 chain, gray nodes are related communities pulled into the same transition
 events, and colored edges show continuation, split, and merge relationships.
+
+## Run Stage Identification Analysis
+
+```bash
+python graph-matching/stage_identification_analysis.py --approach overlap
+python graph-matching/stage_identification_analysis.py --approach all
+python graph-matching/visualize_stage_identification.py
+```
+
+This analysis uses `v020.zip`, the professor's `group_analysis` package, as a
+runtime dependency. The script builds the required `(u,g,t)` structure from the
+final labeled communities, where `u` is a member, `g` is a final label such as
+`c01`, and `t` is the snapshot index.
+
+Main outputs are written to `graph-matching/outputs/stage_analysis/`:
+
+- `labeled_group_memberships_u_g_t.csv`: one row per member-group-snapshot
+  membership.
+- `labeled_group_sizes_by_timestamp.csv`: the compact `(g,t)` count table.
+- `classic_stage_segments.csv`: size-based stages from
+  `Group.identify_stages()` and `Stage.classify()`.
+- `event_based_stage_segments.csv`: split/merge-boundary stages classified
+  with the same stage classifier.
+- `classic_vs_event_stage_overlap.csv`: interval overlaps between both
+  segmentation approaches.
+- `figures/paper_style/overlap_classic_paper_style_grid.png` and
+  `figures/paper_style/overlap_event_based_paper_style_grid.png`: paper-style
+  overview grids for the overlap baseline, with week-span x-axis labels.
+- `figures/paper_style/overlap_classic_paper_style_stages.pdf` and
+  `figures/paper_style/overlap_event_based_paper_style_stages.pdf`: one
+  paper-style lifespan plot per final labeled group.
