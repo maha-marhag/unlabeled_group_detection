@@ -1,0 +1,4 @@
+approach,observation_count,obs_min,obs_q1,obs_median,obs_q3,obs_max,final_group_count,final_min,final_q1,final_median,final_q3,final_max
+cumulative,147,3,30.0,60.0,83.0,238,15,3,26.0,56.0,82.5,238
+interval,159,3,26.0,50.0,71.5,155,15,14,23.0,50.0,66.5,130
+overlap,289,3,26.0,48.0,72.0,179,18,4,23.0,35.5,64.0,93

@@ -251,11 +251,14 @@ def event_segments_for_group(profile, final_row: dict) -> tuple[list[tuple[int, 
     segments = []
     segment_start = start
     for boundary in usable_boundaries:
-        segment_end = boundary - 1
-        if segment_start <= segment_end:
-            segments.append((segment_start, segment_end))
+        # Treat an event snapshot as a shared change point, matching the classic
+        # segmentation convention: it closes the preceding stage and opens the
+        # following one. This covers the full timeline without creating
+        # one-snapshot stages around consecutive events.
+        if segment_start < boundary:
+            segments.append((segment_start, boundary))
         segment_start = boundary
-    if segment_start <= end:
+    if segment_start < end:
         segments.append((segment_start, end))
 
     return segments, event_count, unique_transition_count
@@ -265,6 +268,10 @@ def event_stage_rows(approach: str, system, final_rows: dict[str, dict]) -> tupl
     rows = []
     summary = []
     for group_name, profile in sorted(system.group_profiles.items()):
+        # A group observed only once has no temporal change from which to infer a
+        # meaningful lifecycle stage.
+        if len(profile.presence_dates) == 1:
+            continue
         segments, event_count, unique_transition_count = event_segments_for_group(
             profile,
             final_rows[group_name],
@@ -278,15 +285,13 @@ def event_stage_rows(approach: str, system, final_rows: dict[str, dict]) -> tupl
                 "lifespan_snapshots": len(profile.presence_dates),
                 "split_merge_event_rows": event_count,
                 "split_merge_transition_breakpoints": unique_transition_count,
-                "event_based_stage_count": sum(1 for start, end in segments if start < end),
+                "event_based_stage_count": len(segments),
                 "point_observation_count": sum(1 for start, end in segments if start == end),
                 "segment_bounds": ";".join(f"{start}-{end}" for start, end in segments),
             }
         )
         stage_index = 1
         for start, end in segments:
-            if start == end:
-                continue
             rows.append(
                 stage_to_row(
                     approach,

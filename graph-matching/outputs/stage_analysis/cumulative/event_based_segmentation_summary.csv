@@ -1,0 +1,15 @@
+approach,identity_group,birth_snapshot,last_snapshot,lifespan_snapshots,split_merge_event_rows,split_merge_transition_breakpoints,event_based_stage_count,point_observation_count,segment_bounds
+cumulative,c01,1,10,10,10,5,4,0,1-2;2-8;8-9;9-10
+cumulative,c02,0,10,11,1,1,2,0,0-1;1-10
+cumulative,c03,0,10,11,5,4,5,0,0-1;1-2;2-3;3-4;4-10
+cumulative,c04,0,10,11,0,0,1,0,0-10
+cumulative,c05,0,10,11,5,4,5,0,0-1;1-2;2-4;4-5;5-10
+cumulative,c06,1,10,10,3,2,2,0,1-4;4-10
+cumulative,c07,5,10,6,3,2,2,0,5-6;6-10
+cumulative,c08,0,10,11,0,0,1,0,0-10
+cumulative,c09,0,10,11,3,2,3,0,0-8;8-9;9-10
+cumulative,c10,6,10,5,1,1,1,0,6-10
+cumulative,c11,4,10,7,1,1,1,0,4-10
+cumulative,c12,9,10,2,1,1,1,0,9-10
+cumulative,c13,9,10,2,1,1,1,0,9-10
+cumulative,c14,5,10,6,1,1,1,0,5-10
