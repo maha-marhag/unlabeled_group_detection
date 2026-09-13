@@ -1,0 +1,7 @@
+approach,method,analyzed_group_count,stage_count,mean_stages_per_group,mean_stage_length_snapshots,median_stage_length_snapshots,total_transition_duration
+cumulative,classic,14,43,3.0714285714285716,3.3255813953488373,2.0,100
+cumulative,event_based,14,30,2.142857142857143,4.333333333333333,2.0,100
+interval,classic,12,29,2.4166666666666665,2.8275862068965516,3.0,53
+interval,event_based,12,22,1.8333333333333333,3.409090909090909,2.5,53
+overlap,classic,14,57,4.071428571428571,2.912280701754386,2.0,109
+overlap,event_based,14,36,2.5714285714285716,4.027777777777778,2.5,109

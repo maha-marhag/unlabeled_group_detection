@@ -1,0 +1,4 @@
+approach,groups_compared,transition_labels_compared,same_stage_type_transition_count,stage_type_agreement_rate,classic_internal_boundary_count,event_internal_boundary_count,shared_boundary_count,boundary_jaccard,event_boundary_precision_vs_classic,event_boundary_recall_vs_classic
+cumulative,14,100,76,0.76,29,16,14,0.45161290322580644,0.875,0.4827586206896552
+interval,12,53,35,0.660377358490566,17,10,6,0.2857142857142857,0.6,0.35294117647058826
+overlap,14,109,54,0.4954128440366973,43,22,15,0.3,0.6818181818181818,0.3488372093023256

@@ -129,6 +129,35 @@ def make_windows(
     if approach == "overlap":
         if not 0 <= overlap_fraction < 1:
             raise ValueError("overlap_fraction must be in [0, 1).")
+        if num_snapshots is not None:
+            if num_snapshots < 1:
+                raise ValueError("num_snapshots must be at least 1.")
+            if num_snapshots == 1:
+                return [SnapshotWindow(0, f"days_0_{cutoff_days}", 0, cutoff_ts)]
+
+            # Solve W + (n - 1) * W * (1 - overlap) = cutoff so an
+            # explicitly requested number of windows covers the full period.
+            denominator = 1 + (num_snapshots - 1) * (1 - overlap_fraction)
+            window_width = cutoff_ts / denominator
+            stride = (cutoff_ts - window_width) / (num_snapshots - 1)
+            windows = []
+            for index in range(num_snapshots):
+                start_ts = round(index * stride)
+                end_ts = cutoff_ts if index == num_snapshots - 1 else round(
+                    index * stride + window_width
+                )
+                start_day = start_ts / SECONDS_PER_DAY
+                end_day = end_ts / SECONDS_PER_DAY
+                windows.append(
+                    SnapshotWindow(
+                        index,
+                        f"days_{start_day:.2f}_{end_day:.2f}",
+                        start_ts,
+                        end_ts,
+                    )
+                )
+            return windows
+
         # With a 50-day snapshot and 0.5 overlap, the stride is 25 days:
         # [0, 50], [25, 75], [50, 100], ... . In interval notation, this is
         # equivalent to taking [ts, ts+1] and [ts+1/2, ts+1/2+1].
