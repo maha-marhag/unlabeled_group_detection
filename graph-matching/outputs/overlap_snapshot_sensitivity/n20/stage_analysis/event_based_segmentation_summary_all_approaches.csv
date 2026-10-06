@@ -1,0 +1,15 @@
+approach,identity_group,birth_snapshot,last_snapshot,lifespan_snapshots,split_merge_event_rows,split_merge_transition_breakpoints,event_based_stage_count,point_observation_count,segment_bounds
+overlap,c01,16,19,4,6,2,1,0,16-19
+overlap,c02,10,19,10,13,8,7,0,10-13;13-14;14-15;15-16;16-17;17-18;18-19
+overlap,c03,16,19,4,1,1,2,0,16-18;18-19
+overlap,c04,14,19,6,9,4,4,0,14-15;15-16;16-18;18-19
+overlap,c05,0,19,20,5,5,5,0,0-2;2-7;7-13;13-14;14-19
+overlap,c06,18,19,2,1,1,1,0,18-19
+overlap,c07,1,19,19,10,6,5,0,1-4;4-5;5-16;16-17;17-19
+overlap,c08,0,19,20,0,0,1,0,0-19
+overlap,c10,14,19,6,1,1,1,0,14-19
+overlap,c12,0,19,20,4,4,5,0,0-8;8-15;15-16;16-18;18-19
+overlap,c13,17,19,3,1,1,1,0,17-19
+overlap,c14,15,19,5,1,1,1,0,15-19
+overlap,c16,18,19,2,1,1,1,0,18-19
+overlap,c18,18,19,2,1,1,1,0,18-19

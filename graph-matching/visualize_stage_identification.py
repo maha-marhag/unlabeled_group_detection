@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import os
 import tempfile
 from collections import defaultdict
@@ -70,13 +71,17 @@ def stage_objects(profile, bounds: list[tuple[int, int, str]]):
 def week_label(snapshot_label: str) -> str:
     """Convert days_400_450 to a readable week-span label."""
     _, start_day, end_day = snapshot_label.split("_")
-    start_week = int(start_day) / 7
-    end_week = int(end_day) / 7
+    start_week = float(start_day) / 7
+    end_week = float(end_day) / 7
     return f"w{start_week:.1f}-{end_week:.1f}"
 
 
 def apply_week_axis(ax, profile, snapshot_labels: dict[int, str]) -> None:
-    ticks = profile.presence_dates
+    all_ticks = profile.presence_dates
+    step = max(1, math.ceil(len(all_ticks) / 12))
+    ticks = all_ticks[::step]
+    if all_ticks and ticks[-1] != all_ticks[-1]:
+        ticks = [*ticks, all_ticks[-1]]
     ax.set_xticks(ticks)
     ax.set_xticklabels(
         [week_label(snapshot_labels[t]) for t in ticks],
@@ -107,9 +112,7 @@ def write_method_figures(
     bounds_by_group: dict[str, list[tuple[int, int, str]]],
     snapshot_labels: dict[int, str],
 ) -> None:
-    method_dir = output_dir / method
-    method_dir.mkdir(parents=True, exist_ok=True)
-
+    output_dir.mkdir(parents=True, exist_ok=True)
     pdf_path = output_dir / f"overlap_{method}_paper_style_stages.pdf"
     with PdfPages(pdf_path) as pdf:
         for group_name in sorted(group_profiles):
@@ -125,7 +128,6 @@ def write_method_figures(
                 snapshot_labels,
             )
             fig.tight_layout()
-            fig.savefig(method_dir / f"{group_name}_{method}_paper_style.png", dpi=180)
             pdf.savefig(fig)
             plt.close(fig)
 
@@ -164,12 +166,17 @@ def write_method_figures(
     plt.close(fig)
 
 
-def run(input_dir: Path, output_dir: Path) -> None:
+def run(
+    input_dir: Path,
+    output_dir: Path,
+    stage_identification_dir: Path | None = None,
+) -> None:
     project_root = find_project_root()
     _, System = load_professor_package(project_root)
-    stage_identification_dir = (
-        project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
-    )
+    if stage_identification_dir is None:
+        stage_identification_dir = (
+            project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
+        )
     communities = load_identified_communities(stage_identification_dir, "overlap")
     snapshot_labels = {
         row["snapshot_index"]: row["snapshot_label"]
@@ -212,12 +219,18 @@ def parse_args() -> argparse.Namespace:
         / "figures"
         / "paper_style",
     )
+    parser.add_argument(
+        "--communities",
+        type=Path,
+        default=None,
+        help="Optional stage-identification root containing overlap communities.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run(args.input, args.output)
+    run(args.input, args.output, args.communities)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+approach,method,stage_type,stage_count
+overlap,classic_size_bottom_up,Dynamic-Growth,26
+overlap,classic_size_bottom_up,Erosion,15
+overlap,classic_size_bottom_up,Fluid-Stability,15
+overlap,classic_size_bottom_up,Organic-Growth,14
+overlap,classic_size_bottom_up,Steady-Stability,1
+overlap,classic_size_bottom_up,Turnover-Shrinkage,31
+overlap,event_split_merge_boundaries,Dynamic-Growth,17
+overlap,event_split_merge_boundaries,Erosion,4
+overlap,event_split_merge_boundaries,Fluid-Stability,15
+overlap,event_split_merge_boundaries,Organic-Growth,1
+overlap,event_split_merge_boundaries,Steady-Stability,1
+overlap,event_split_merge_boundaries,Turnover-Shrinkage,19
