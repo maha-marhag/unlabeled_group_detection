@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Paper-style visualizations for overlap stage identification.
+"""Paper-style visualizations of classic and event-based stage identification.
+
+Figures are produced per approach (cumulative, interval, overlap).
 
 The figure style follows the stage-lifespan plot in the provided paper and the
 ``Group.plot_lifespan`` method in ``v020.zip``:
@@ -40,6 +42,7 @@ METHOD_FILES = {
     "classic": "classic_stage_segments.csv",
     "event_based": "event_based_stage_segments.csv",
 }
+APPROACHES = ["cumulative", "interval", "overlap"]
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -111,9 +114,10 @@ def write_method_figures(
     group_profiles: dict,
     bounds_by_group: dict[str, list[tuple[int, int, str]]],
     snapshot_labels: dict[int, str],
+    approach: str = "overlap",
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = output_dir / f"overlap_{method}_paper_style_stages.pdf"
+    pdf_path = output_dir / f"{approach}_{method}_paper_style_stages.pdf"
     with PdfPages(pdf_path) as pdf:
         for group_name in sorted(group_profiles):
             stages = stage_objects(group_profiles[group_name], bounds_by_group[group_name])
@@ -158,26 +162,25 @@ def write_method_figures(
             text.set_fontsize(6.5)
     for ax in axes[len(groups) :]:
         ax.axis("off")
-    fig.suptitle(f"Overlap {method.replace('_', ' ')} stage identification", fontsize=14)
+    fig.suptitle(
+        f"{approach.capitalize()} {method.replace('_', ' ')} stage identification",
+        fontsize=14,
+    )
     fig.supxlabel("Week span")
     fig.supylabel("Group's Size")
     fig.tight_layout(rect=(0.02, 0.02, 1, 0.97))
-    fig.savefig(output_dir / f"overlap_{method}_paper_style_grid.png", dpi=180)
+    fig.savefig(output_dir / f"{approach}_{method}_paper_style_grid.png", dpi=180)
     plt.close(fig)
 
 
-def run(
+def run_approach(
+    System,
+    approach: str,
     input_dir: Path,
     output_dir: Path,
-    stage_identification_dir: Path | None = None,
+    stage_identification_dir: Path,
 ) -> None:
-    project_root = find_project_root()
-    _, System = load_professor_package(project_root)
-    if stage_identification_dir is None:
-        stage_identification_dir = (
-            project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
-        )
-    communities = load_identified_communities(stage_identification_dir, "overlap")
+    communities = load_identified_communities(stage_identification_dir, approach)
     snapshot_labels = {
         row["snapshot_index"]: row["snapshot_label"]
         for row in communities
@@ -186,22 +189,39 @@ def run(
     system = System(build_system_data(communities), perform_checks=True)
     system.init_group_analysis()
 
-    output_dir.mkdir(parents=True, exist_ok=True)
     for method in METHOD_FILES:
-        bounds_by_group = load_stage_bounds(input_dir / "overlap", method)
+        bounds_by_group = load_stage_bounds(input_dir / approach, method)
         write_method_figures(
             output_dir,
             method,
             system.group_profiles,
             bounds_by_group,
             snapshot_labels,
+            approach,
         )
+
+
+def run(
+    input_dir: Path,
+    output_dir: Path,
+    stage_identification_dir: Path | None = None,
+    approaches: list[str] | None = None,
+) -> None:
+    project_root = find_project_root()
+    _, System = load_professor_package(project_root)
+    if stage_identification_dir is None:
+        stage_identification_dir = (
+            project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
+        )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for approach in approaches or APPROACHES:
+        run_approach(System, approach, input_dir, output_dir, stage_identification_dir)
 
 
 def parse_args() -> argparse.Namespace:
     project_root = find_project_root()
     parser = argparse.ArgumentParser(
-        description="Draw paper-style classic and event-based overlap stage plots."
+        description="Draw paper-style classic and event-based stage plots per approach."
     )
     parser.add_argument(
         "--input",
@@ -223,14 +243,21 @@ def parse_args() -> argparse.Namespace:
         "--communities",
         type=Path,
         default=None,
-        help="Optional stage-identification root containing overlap communities.",
+        help="Optional stage-identification root containing identified communities.",
+    )
+    parser.add_argument(
+        "--approach",
+        choices=[*APPROACHES, "all"],
+        default="all",
+        help="Approach to draw; default draws all three.",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    run(args.input, args.output, args.communities)
+    approaches = APPROACHES if args.approach == "all" else [args.approach]
+    run(args.input, args.output, args.communities, approaches)
 
 
 if __name__ == "__main__":

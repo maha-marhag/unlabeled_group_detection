@@ -115,6 +115,7 @@ def run_configuration(
         analysis_dir,
         config_root / "stage_figures",
         identification_dir,
+        ["overlap"],
     )
 
 
