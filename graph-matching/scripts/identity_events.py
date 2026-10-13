@@ -145,18 +145,18 @@ def break_forward_tie(
             scores[index] = branch_score
 
             if snapshot_index + 1 < len(all_snapshots):
-                descendants = []
+                # Deduplicate by community so tied branches cannot grow
+                # multiplicatively while walking across snapshots.
+                descendants: dict[int, CommunityRecord] = {}
                 for community in communities:
-                    descendants.extend(
-                        candidate
-                        for candidate, _ in best_overlaps_to_target(
-                            community,
-                            origin_nodes,
-                            all_snapshots[snapshot_index + 1],
-                        )
-                    )
+                    for candidate, _ in best_overlaps_to_target(
+                        community,
+                        origin_nodes,
+                        all_snapshots[snapshot_index + 1],
+                    ):
+                        descendants.setdefault(candidate.local_id, candidate)
                 if descendants:
-                    next_active[index] = descendants
+                    next_active[index] = list(descendants.values())
 
         best_score = max(scores.values())
         winners = [index for index, score in scores.items() if score == best_score]
@@ -194,18 +194,16 @@ def break_backward_tie(
             scores[index] = branch_score
 
             if snapshot_index - 1 >= 0:
-                ancestors = []
+                ancestors: dict[int, CommunityRecord] = {}
                 for community in communities:
-                    ancestors.extend(
-                        candidate
-                        for candidate, _ in best_overlaps_to_target(
-                            community,
-                            origin_nodes,
-                            all_snapshots[snapshot_index - 1],
-                        )
-                    )
+                    for candidate, _ in best_overlaps_to_target(
+                        community,
+                        origin_nodes,
+                        all_snapshots[snapshot_index - 1],
+                    ):
+                        ancestors.setdefault(candidate.local_id, candidate)
                 if ancestors:
-                    next_active[index] = ancestors
+                    next_active[index] = list(ancestors.values())
 
         best_score = max(scores.values())
         winners = [index for index, score in scores.items() if score == best_score]
@@ -244,13 +242,48 @@ def choose_best_relation(
     return break_backward_tie(all_snapshots, tied, origin_nodes, snapshot_index - 1)
 
 
+MATCHING_CRITERIA = ("stability", "jaccard")
+
+
 def assign_ids(
     all_snapshots: list[list[CommunityRecord]],
     approach: str,
     jaccard_threshold: float = 0.0,
     stability_threshold: float = 0.4,
+    criterion: str = "stability",
 ) -> tuple[dict[tuple[int, int], str], list[dict]]:
-    """Assign observation IDs and return pairwise identity-decision rows."""
+    """Assign observation IDs and return pairwise identity-decision rows.
+
+    ``criterion`` selects the matching rule:
+
+    - ``"stability"`` (default, current pipeline): a relation is accepted when
+      its prospective or retrospective stability reaches
+      ``stability_threshold``; forward nominations are ranked by prospective
+      stability and backward nominations by retrospective stability.
+      ``jaccard_threshold`` only pre-filters candidate relations.
+    - ``"jaccard"``: a relation is accepted when its Jaccard similarity reaches
+      ``jaccard_threshold``; both nomination directions are ranked by Jaccard
+      and ``stability_threshold`` is ignored.
+    """
+    if criterion not in MATCHING_CRITERIA:
+        raise ValueError(f"Unknown matching criterion: {criterion!r}")
+    if criterion == "jaccard":
+        forward_score, backward_score = "jaccard", "jaccard"
+        forward_threshold = backward_threshold = jaccard_threshold
+
+        def accepts(relation: IdentityRelation) -> bool:
+            return relation.jaccard >= jaccard_threshold
+
+    else:
+        forward_score, backward_score = "prospective_stability", "retrospective_stability"
+        forward_threshold = backward_threshold = stability_threshold
+
+        def accepts(relation: IdentityRelation) -> bool:
+            return (
+                relation.retrospective_stability >= stability_threshold
+                or relation.prospective_stability >= stability_threshold
+            )
+
     assigned_ids: dict[tuple[int, int], str] = {}
     transitions: list[dict] = []
 
@@ -282,10 +315,10 @@ def assign_ids(
             prev.local_id: choose_best_relation(
                 eligible_relations(
                     by_previous.get(prev.local_id, []),
-                    "prospective_stability",
-                    stability_threshold,
+                    forward_score,
+                    forward_threshold,
                 ),
-                "prospective_stability",
+                forward_score,
                 all_snapshots,
                 snapshot_index,
                 prev.nodes,
@@ -297,10 +330,10 @@ def assign_ids(
             curr.local_id: choose_best_relation(
                 eligible_relations(
                     by_current.get(curr.local_id, []),
-                    "retrospective_stability",
-                    stability_threshold,
+                    backward_score,
+                    backward_threshold,
                 ),
-                "retrospective_stability",
+                backward_score,
                 all_snapshots,
                 snapshot_index,
                 curr.nodes,
@@ -317,10 +350,7 @@ def assign_ids(
             parent_relations = by_current.get(curr.local_id, [])
             if len(parent_relations) == 1:
                 candidate = parent_relations[0]
-                if (
-                    candidate.retrospective_stability >= stability_threshold
-                    or candidate.prospective_stability >= stability_threshold
-                ):
+                if accepts(candidate):
                     prospective_choice = prospective_nominees[candidate.previous.local_id]
                     parent_has_split = len(by_previous.get(candidate.previous.local_id, [])) > 1
                     if (

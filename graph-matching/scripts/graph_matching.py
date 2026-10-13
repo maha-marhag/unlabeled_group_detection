@@ -102,6 +102,25 @@ def make_windows(
     cutoff_ts = cutoff_days * SECONDS_PER_DAY
     snapshot_count = num_snapshots or ceil(cutoff_ts / snapshot_ts)
 
+    if approach in {"interval", "cumulative"} and num_snapshots is not None:
+        # An explicitly requested count divides the full period into equal
+        # steps, so interval and cumulative can be run at the same snapshot
+        # counts as overlap in the sensitivity analysis.
+        if num_snapshots < 1:
+            raise ValueError("num_snapshots must be at least 1.")
+        bounds = [round(index * cutoff_ts / num_snapshots) for index in range(num_snapshots)]
+        bounds.append(cutoff_ts)
+        windows = []
+        for index in range(num_snapshots):
+            start_ts = 0 if approach == "cumulative" else bounds[index]
+            end_ts = bounds[index + 1]
+            start_day = start_ts / SECONDS_PER_DAY
+            end_day = end_ts / SECONDS_PER_DAY
+            windows.append(
+                SnapshotWindow(index, f"days_{start_day:.2f}_{end_day:.2f}", start_ts, end_ts)
+            )
+        return windows
+
     if approach == "interval":
         return [
             SnapshotWindow(
