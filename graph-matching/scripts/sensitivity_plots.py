@@ -9,12 +9,37 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
     one line per snapshot count (10..50). A horizontal dashed line marks a
     number of groups, so the intersections with the five lines can be read off.
 
-``lifespan_vs_size_at_theta_star.png``, ``groups_at_theta_star.csv``:
+``lifespan_classes_at_theta_star.png``, ``groups_at_theta_star.csv``:
     for every snapshot count whose line reaches the dashed value, the Jaccard
     threshold theta* of the intersection is interpolated and the identity
     matching is re-run at exactly theta* on the cached Louvain communities.
-    Each resulting dynamic group is drawn by lifespan (days between its first
-    and last observation) and maximum size, one colour per snapshot count.
+    Per snapshot count, two bars: groups observed in a single snapshot and
+    groups living at least LONG_LIVED_DAYS days (between first and last window end).
+
+``crosstabs/{approach}_S{i}_vs_S{j}.csv``, ``group_matching_summary.csv``,
+``group_matching_pairs.csv``:
+    for every pair of snapshot counts S_i < S_j reaching the dashed value, the
+    dynamic groups at theta* are compared over their common time points (window
+    ends; for overlap, each window end of S_i paired with the nearest of S_j).
+    The cross table holds the mean Jaccard of the member sets of every pair of
+    groups (0 where only one group exists; cells equal to 0 are left empty), the groups are matched one-to-one by
+    linear sum assignment, and the Adjusted Rand Index of the node-time labels
+    measures the global agreement.
+
+``joint_threshold_search.csv``, ``joint_threshold_search_best.csv``:
+    for every pair S_i < S_j and every combination of SEARCH_THRESHOLDS for S_i
+    and S_j, the groups that exist at MIN_COMMON_POINTS or more common time
+    points are matched as above. The agreement score is the sum of the matched
+    mean Jaccard values divided by max(n_i, n_j), so a group left without a
+    partner counts as 0; the best pair of thresholds maximises the score among
+    the combinations with at least MIN_COMPARED_GROUPS such groups on both sides.
+
+``crosstab_example_S20_vs_S40.png``:
+    one small excerpt of the cross table per approach, with the Jaccard value
+    written in each cell (empty where 0). Rows: EXAMPLE_ROWS consecutive groups of
+    S_i around the median matched rank. Columns: their matched groups of S_j
+    (diagonal) followed by up to EXAMPLE_EXTRA_COLUMNS other partners with the
+    largest Jaccard sum over these rows.
 """
 
 from __future__ import annotations
@@ -32,6 +57,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.optimize import linear_sum_assignment
 
 from graph_matching import SECONDS_PER_DAY, find_project_root
 from identity_events import assign_ids, build_identity_groups, load_snapshots
@@ -42,6 +68,15 @@ COUNT_MARKERS = {10: "o", 20: "s", 30: "^", 40: "D", 50: "v"}
 # Round number of groups marked by the dashed line, chosen close to the
 # value that intercepts the most snapshot-count lines.
 GROUPS_LINE = {"cumulative": 70, "interval": 200, "overlap": 110}
+LONG_LIVED_DAYS = 100
+# Only groups with a history (seen at >= 2 common time points) enter the threshold search.
+MIN_COMMON_POINTS = 2
+# A combination is only eligible if both configurations have this many such groups
+# (otherwise a single well-matched group could win; results are the same for 5 to 15).
+MIN_COMPARED_GROUPS = 10
+SEARCH_THRESHOLDS = [round(0.1 + 0.05 * i, 2) for i in range(17)]  # 0.10 ... 0.90
+EXAMPLE_ROWS = 5
+EXAMPLE_EXTRA_COLUMNS = 3
 
 
 def plot_groups_vs_jaccard(grid: pd.DataFrame, out: Path, groups_line: dict[str, int] | None) -> None:
@@ -86,29 +121,41 @@ def theta_star(line: pd.DataFrame, value: float) -> float | None:
     return None
 
 
-def groups_at_threshold(communities: Path, approach: str, threshold: float) -> pd.DataFrame:
-    """Dynamic groups of one run matched with absolute Jaccard >= threshold."""
+def dynamic_groups(communities: Path, approach: str, threshold: float
+                   ) -> tuple[list[float], dict[str, dict[float, frozenset[int]]]]:
+    """Time points (window ends, days) and chronicles {group: {t: U(D, t)}} of one run
+    matched with absolute Jaccard >= threshold."""
     _, snapshots = load_snapshots(communities)
     ids, transitions = assign_ids(snapshots, approach, jaccard_threshold=threshold,
                                   criterion="jaccard")
     groups, _ = build_identity_groups(snapshots, ids, transitions)
     by_observation = {ids[(c.snapshot_index, c.local_id)]: c for s in snapshots for c in s}
-    rows = []
+    times = [s[0].window_end_ts / SECONDS_PER_DAY for s in snapshots]
+    chronicles = {}
     for group in groups.values():
-        members = [by_observation[o] for o in group["observation_ids"].split("=")]
-        ends = [c.window_end_ts / SECONDS_PER_DAY for c in members]
-        rows.append({"group": group["identity_group"],
-                     "lifespan_days": max(ends) - min(ends),
-                     "max_size": max(len(c.nodes) for c in members)})
-    return pd.DataFrame(rows)
+        chronicle: dict[float, frozenset[int]] = {}
+        for observation in group["observation_ids"].split("="):
+            community = by_observation[observation]
+            t = community.window_end_ts / SECONDS_PER_DAY
+            chronicle[t] = chronicle.get(t, frozenset()) | frozenset(community.nodes)
+        chronicles[group["identity_group"]] = chronicle
+    return times, chronicles
 
 
-def plot_lifespan_vs_size(grid: pd.DataFrame, runs: Path, out: Path, table_out: Path,
-               groups_line: dict[str, int] | None) -> pd.DataFrame:
+def groups_at_threshold(communities: Path, approach: str, threshold: float) -> pd.DataFrame:
+    """Lifespan and maximum size of the dynamic groups of one run."""
+    _, chronicles = dynamic_groups(communities, approach, threshold)
+    return pd.DataFrame([{"group": group,
+                          "lifespan_days": max(chronicle) - min(chronicle),
+                          "max_size": max(len(members) for members in chronicle.values())}
+                         for group, chronicle in chronicles.items()])
+
+
+def plot_lifespan_classes(grid: pd.DataFrame, runs: Path, out: Path, table_out: Path,
+                          groups_line: dict[str, int] | None) -> pd.DataFrame:
     grid = grid[grid["criterion"] == "jaccard"]
-    fig, axes = plt.subplots(1, len(APPROACHES), figsize=(5.2 * len(APPROACHES), 4.4))
     table = []
-    for ax, approach in zip(axes, APPROACHES):
+    for approach in APPROACHES:
         value = (groups_line or {}).get(approach, GROUPS_LINE[approach])
         sub = grid[grid["approach"] == approach]
         for count in sorted(sub["snapshot_count"].unique()):
@@ -117,30 +164,251 @@ def plot_lifespan_vs_size(grid: pd.DataFrame, runs: Path, out: Path, table_out: 
                 continue
             communities = runs / approach / f"n{count}" / "graph_matching" / approach / "communities.csv"
             groups = groups_at_threshold(communities, approach, theta)
-            ax.scatter(groups["lifespan_days"], groups["max_size"], s=14, alpha=0.55,
-                       color=COUNT_COLORS[count], marker=COUNT_MARKERS[count],
-                       label=f"S={count}, θ*={theta:.2f}")
             table.append({"approach": approach, "target_groups": value,
                           "snapshot_count": count, "theta_star": round(theta, 3),
                           "number_of_groups": len(groups),
                           "median_lifespan_days": round(groups["lifespan_days"].median(), 1),
                           "median_max_size": groups["max_size"].median(),
-                          "single_snapshot_groups": int((groups["lifespan_days"] == 0).sum())})
-        ax.set_yscale("log")
-        ax.set_title(f"{approach} ({value} groups)", fontsize=11)
-        ax.set_xlabel("lifespan (days)")
-        ax.set_ylabel("maximum size (members)")
-        ax.grid(color="#e5e7eb")
+                          "single_snapshot_groups": int((groups["lifespan_days"] == 0).sum()),
+                          "long_lived_groups": int((groups["lifespan_days"] >= LONG_LIVED_DAYS).sum())})
+    table = pd.DataFrame(table)
+    table.to_csv(table_out, index=False)
+
+    fig, axes = plt.subplots(1, len(APPROACHES), figsize=(5.2 * len(APPROACHES), 4.4), sharey=True)
+    width = 0.38
+    for ax, approach in zip(axes, APPROACHES):
+        sub = table[table["approach"] == approach]
+        x = np.arange(len(sub))
+        for offset, column, color, label in (
+            (-width / 2, "single_snapshot_groups", "#9ca3af", "observed in one snapshot only"),
+            (width / 2, "long_lived_groups", "#2a78d6", f"living ≥ {LONG_LIVED_DAYS} days"),
+        ):
+            bars = ax.bar(x + offset, sub[column], width, color=color, label=label)
+            ax.bar_label(bars, fontsize=8, color="#52514e")
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"S={c}\nθ*={t:.2f}" for c, t in zip(sub["snapshot_count"], sub["theta_star"])],
+                           fontsize=8)
+        ax.set_title(f"{approach} ({sub['target_groups'].iloc[0]} groups)", fontsize=11)
+        ax.grid(axis="y", color="#e5e7eb")
         ax.set_axisbelow(True)
         ax.legend(fontsize=8)
-    fig.suptitle("Dynamic groups at the Jaccard threshold θ* reaching the dashed number of groups",
-                 fontsize=12)
+    axes[0].set_ylabel("number of dynamic groups")
+    fig.suptitle("Short-lived and long-lived dynamic groups at the Jaccard threshold θ*", fontsize=12)
     fig.tight_layout()
     fig.savefig(out, dpi=170)
     plt.close(fig)
-    table = pd.DataFrame(table)
-    table.to_csv(table_out, index=False)
     return table
+
+
+def time_pairs(times_i: list[float], times_j: list[float], approach: str
+               ) -> list[tuple[float, float]]:
+    """Common time points P_ij of two runs, S_i having fewer snapshots than S_j."""
+    if approach == "overlap":
+        return [(t, min(times_j, key=lambda other: abs(other - t))) for t in times_i]
+    common = {round(t, 6) for t in times_i} & {round(t, 6) for t in times_j}
+    return [(t, t) for t in times_i if round(t, 6) in common]
+
+
+def crosstab(chronicles_i: dict, chronicles_j: dict, pairs: list[tuple[float, float]],
+             min_points: int = 1) -> tuple[np.ndarray, list[str], list[str]]:
+    """Mean Jaccard over the common time points at which at least one group exists.
+
+    Groups that exist at fewer than ``min_points`` common time points are dropped.
+    """
+    rows = [g for g, c in chronicles_i.items() if sum(t in c for t, _ in pairs) >= min_points]
+    cols = [g for g, c in chronicles_j.items() if sum(t in c for _, t in pairs) >= min_points]
+    if not rows or not cols:
+        return np.zeros((len(rows), len(cols))), rows, cols
+    present_i = np.array([[t in chronicles_i[g] for t, _ in pairs] for g in rows])
+    present_j = np.array([[t in chronicles_j[g] for _, t in pairs] for g in cols])
+    both = present_i.astype(int) @ present_j.T.astype(int)
+    active = present_i.sum(1)[:, None] + present_j.sum(1)[None, :] - both
+    total = np.zeros((len(rows), len(cols)))
+    for p, (t_i, t_j) in enumerate(pairs):
+        alive_i = [(k, chronicles_i[rows[k]][t_i]) for k in np.flatnonzero(present_i[:, p])]
+        alive_j = [(l, chronicles_j[cols[l]][t_j]) for l in np.flatnonzero(present_j[:, p])]
+        for k, left in alive_i:
+            for l, right in alive_j:
+                total[k, l] += len(left & right) / len(left | right)
+    return total / active, rows, cols
+
+
+def adjusted_rand_index(chronicles_i: dict, chronicles_j: dict,
+                        pairs: list[tuple[float, float]]) -> float:
+    """ARI of the group labels of the node-time elements present in both runs."""
+    counts: dict[tuple[str, str], int] = {}
+    for t_i, t_j in pairs:
+        label_i = {u: g for g, c in chronicles_i.items() if t_i in c for u in c[t_i]}
+        label_j = {u: g for g, c in chronicles_j.items() if t_j in c for u in c[t_j]}
+        for u in label_i.keys() & label_j.keys():
+            key = (label_i[u], label_j[u])
+            counts[key] = counts.get(key, 0) + 1
+    table = pd.Series(counts)
+    def comb2(x) -> float:
+        x = np.asarray(x, dtype=float)
+        return float((x * (x - 1) / 2).sum())
+
+    index = comb2(table)
+    rows = comb2(table.groupby(level=0).sum())
+    cols = comb2(table.groupby(level=1).sum())
+    expected = rows * cols / comb2([table.sum()])
+    return float((index - expected) / ((rows + cols) / 2 - expected))
+
+
+def compare_snapshot_counts(grid: pd.DataFrame, runs: Path, out_dir: Path,
+                            groups_line: dict[str, int] | None) -> pd.DataFrame:
+    grid = grid[grid["criterion"] == "jaccard"]
+    summary, matched = [], []
+    (out_dir / "crosstabs").mkdir(exist_ok=True)
+    for approach in APPROACHES:
+        value = (groups_line or {}).get(approach, GROUPS_LINE[approach])
+        sub = grid[grid["approach"] == approach]
+        runs_at = {}
+        for count in sorted(sub["snapshot_count"].unique()):
+            theta = theta_star(sub[sub["snapshot_count"] == count], value)
+            if theta is not None:
+                communities = runs / approach / f"n{count}" / "graph_matching" / approach / "communities.csv"
+                runs_at[count] = (theta, *dynamic_groups(communities, approach, theta))
+        counts = sorted(runs_at)
+        for a, s_i in enumerate(counts):
+            for b, s_j in enumerate(counts):
+                if b <= a:
+                    continue
+                _, times_i, chron_i = runs_at[s_i]
+                _, times_j, chron_j = runs_at[s_j]
+                pairs = time_pairs(times_i, times_j, approach)
+                table, rows, cols = crosstab(chron_i, chron_j, pairs)
+                r, c = linear_sum_assignment(table, maximize=True)
+                order = np.argsort(-table[r, c])
+                r, c = r[order], c[order]
+                values = table[r, c]
+                ari = adjusted_rand_index(chron_i, chron_j, pairs)
+                for n, (k, l, v) in enumerate(zip(r, c, values), start=1):
+                    matched.append({"approach": approach, "s_i": s_i, "s_j": s_j, "rank": n,
+                                    "group_i": rows[k], "group_j": cols[l], "mean_jaccard": round(v, 4)})
+                summary.append({"approach": approach, "s_i": s_i, "s_j": s_j,
+                                "theta_i": round(runs_at[s_i][0], 3), "theta_j": round(runs_at[s_j][0], 3),
+                                "time_points_i": len(times_i), "time_points_j": len(times_j),
+                                "common_time_points": len(pairs),
+                                "groups_i": len(chron_i), "groups_j": len(chron_j),
+                                "excluded_i": len(chron_i) - len(rows), "excluded_j": len(chron_j) - len(cols),
+                                "compared_i": len(rows), "compared_j": len(cols),
+                                "mean_chronicle_length_i": round(float(np.mean(
+                                    [sum(t in chron_i[g] for t, _ in pairs) for g in rows])), 1),
+                                "mean_chronicle_length_j": round(float(np.mean(
+                                    [sum(t in chron_j[g] for _, t in pairs) for g in cols])), 1),
+                                "matched_pairs": len(values),
+                                "mean_matched_jaccard": round(values.mean(), 3),
+                                "median_matched_jaccard": round(float(np.median(values)), 3),
+                                "ari": round(ari, 3)})
+                # Matched pairs first (best first, D_k <-> D'_k), unmatched groups after them.
+                row_order = list(r) + [k for k in range(len(rows)) if k not in set(r)]
+                col_order = list(c) + [l for l in range(len(cols)) if l not in set(c)]
+                # Pairs of groups with Jaccard 0 are left empty.
+                crosstab_frame = pd.DataFrame(
+                    np.where(table > 0, table, np.nan)[np.ix_(row_order, col_order)].round(3),
+                    index=[f"D{n + 1} ({rows[k]})" for n, k in enumerate(row_order)],
+                    columns=[f"D'{n + 1} ({cols[l]})" for n, l in enumerate(col_order)])
+                crosstab_frame.index.name = f"S={s_i} \\ S={s_j}"
+                crosstab_frame.to_csv(out_dir / "crosstabs" / f"{approach}_S{s_i}_vs_S{s_j}.csv")
+    pd.DataFrame(matched).to_csv(out_dir / "group_matching_pairs.csv", index=False)
+    summary = pd.DataFrame(summary)
+    summary.to_csv(out_dir / "group_matching_summary.csv", index=False)
+    return summary
+
+
+def agreement(chron_i: dict, chron_j: dict, pairs: list[tuple[float, float]]) -> dict:
+    """Matched mean Jaccard of the groups with a history, with and without unmatched groups."""
+    table, rows, cols = crosstab(chron_i, chron_j, pairs, MIN_COMMON_POINTS)
+    if not rows or not cols:
+        return {"compared_i": len(rows), "compared_j": len(cols), "mean_matched_jaccard": 0.0,
+                "median_matched_jaccard": 0.0, "score": 0.0,
+                "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
+    r, c = linear_sum_assignment(table, maximize=True)
+    values = table[r, c]
+    return {"compared_i": len(rows), "compared_j": len(cols),
+            "mean_matched_jaccard": float(values.mean()),
+            "median_matched_jaccard": float(np.median(values)),
+            "score": float(values.sum() / max(len(rows), len(cols))),
+            "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
+
+
+def search_thresholds_joint(grid: pd.DataFrame, runs: Path, out_dir: Path,
+                            groups_line: dict[str, int] | None) -> pd.DataFrame:
+    grid = grid[grid["criterion"] == "jaccard"]
+    rows = []
+    for approach in APPROACHES:
+        value = (groups_line or {}).get(approach, GROUPS_LINE[approach])
+        sub = grid[grid["approach"] == approach]
+        stars = {count: theta_star(sub[sub["snapshot_count"] == count], value)
+                 for count in sorted(sub["snapshot_count"].unique())}
+        counts = [count for count, theta in stars.items() if theta is not None]
+        groups = {}
+        for count in counts:
+            path = runs / approach / f"n{count}" / "graph_matching" / approach / "communities.csv"
+            for theta in SEARCH_THRESHOLDS:
+                groups[count, theta] = dynamic_groups(path, approach, theta)
+        # Share of dynamic groups observed in a single snapshot (no tracking).
+        single_share = {key: float(np.mean([len(c) == 1 for c in chron.values()]))
+                        for key, (_, chron) in groups.items()}
+        for a, s_i in enumerate(counts):
+            for s_j in counts[a + 1:]:
+                for theta_i in SEARCH_THRESHOLDS:
+                    times_i, chron_i = groups[s_i, theta_i]
+                    for theta_j in SEARCH_THRESHOLDS:
+                        times_j, chron_j = groups[s_j, theta_j]
+                        pairs = time_pairs(times_i, times_j, approach)
+                        rows.append({"approach": approach, "s_i": s_i, "theta_i": theta_i,
+                                     "s_j": s_j, "theta_j": theta_j,
+                                     "groups_i": len(chron_i), "groups_j": len(chron_j),
+                                     "single_snapshot_share_i": single_share[s_i, theta_i],
+                                     "single_snapshot_share_j": single_share[s_j, theta_j],
+                                     **agreement(chron_i, chron_j, pairs)})
+                print(f"{approach} S={s_i} vs S={s_j} done", flush=True)
+    search = pd.DataFrame(rows).round(3)
+    search.to_csv(out_dir / "joint_threshold_search.csv", index=False)
+    eligible = search[(search["compared_i"] >= MIN_COMPARED_GROUPS)
+                      & (search["compared_j"] >= MIN_COMPARED_GROUPS)]
+    best = eligible.loc[eligible.groupby(["approach", "s_i", "s_j"], sort=False)["score"].idxmax()]
+    best.to_csv(out_dir / "joint_threshold_search_best.csv", index=False)
+    return best
+
+
+def plot_crosstab_examples(crosstabs: Path, out: Path, s_i: int, s_j: int) -> None:
+    fig, axes = plt.subplots(1, len(APPROACHES), figsize=(5.4 * len(APPROACHES), 3.9))
+    cmap = plt.get_cmap("Blues")
+    for ax, approach in zip(axes, APPROACHES):
+        table = pd.read_csv(crosstabs / f"{approach}_S{s_i}_vs_S{s_j}.csv", index_col=0).fillna(0)
+        matched = min(table.shape)
+        first = max(0, min(matched // 2 - EXAMPLE_ROWS // 2, matched - EXAMPLE_ROWS))
+        rows = list(range(first, first + EXAMPLE_ROWS))
+        others = table.iloc[rows].drop(columns=table.columns[rows]).sum()
+        extra = [table.columns.get_loc(c) for c in others[others > 0].nlargest(EXAMPLE_EXTRA_COLUMNS).index]
+        excerpt = table.iloc[rows, rows + extra].to_numpy()
+        ax.imshow(np.where(excerpt > 0, excerpt, np.nan), cmap=cmap, vmin=0, vmax=1.15)
+        for (k, l), value in np.ndenumerate(excerpt):
+            if value > 0:
+                ax.text(l, k, f"{value:.2f}" if value >= 0.005 else "<0.01", ha="center", va="center", fontsize=9,
+                        fontweight="bold" if k == l else "normal",
+                        color="white" if value > 0.6 else "#1f2937")
+        ax.add_patch(plt.Rectangle((-0.5, -0.5), EXAMPLE_ROWS, EXAMPLE_ROWS, fill=False,
+                                   edgecolor="#52514e", linewidth=1, linestyle="dashed"))
+        ax.set_xticks(range(len(rows) + len(extra)))
+        ax.set_xticklabels([table.columns[c].split(" ")[0] for c in rows + extra], fontsize=8)
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([table.index[r].split(" ")[0] for r in rows], fontsize=8)
+        ax.set_xticks(np.arange(-0.5, len(rows) + len(extra)), minor=True)
+        ax.set_yticks(np.arange(-0.5, len(rows)), minor=True)
+        ax.grid(which="minor", color="#e5e7eb")
+        ax.tick_params(which="minor", length=0)
+        ax.set_xlabel(f"dynamic groups, S={s_j}")
+        ax.set_ylabel(f"dynamic groups, S={s_i}")
+        ax.set_title(f"{approach}\nmatched ranks {first + 1}–{first + EXAMPLE_ROWS} of {matched}", fontsize=10)
+    fig.suptitle(f"Excerpt of the cross table, S={s_i} vs S={s_j}: mean Jaccard per pair of groups "
+                 "(matched pairs on the diagonal, empty = 0)", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(out, dpi=170)
+    plt.close(fig)
 
 
 def parse_groups_line(values: list[str] | None) -> dict[str, int] | None:
@@ -173,9 +441,15 @@ def main() -> None:
     grid = pd.read_csv(args.grid)
     groups_line = parse_groups_line(args.groups_line)
     plot_groups_vs_jaccard(grid, args.figures / "groups_vs_jaccard_by_snapshots.png", groups_line)
-    table = plot_lifespan_vs_size(grid, args.runs, args.figures / "lifespan_vs_size_at_theta_star.png",
+    table = plot_lifespan_classes(grid, args.runs, args.figures / "lifespan_classes_at_theta_star.png",
                                   args.figures.parent / "groups_at_theta_star.csv", groups_line)
     print(table.to_string(index=False))
+    summary = compare_snapshot_counts(grid, args.runs, args.figures.parent, groups_line)
+    print(summary.to_string(index=False))
+    plot_crosstab_examples(args.figures.parent / "crosstabs",
+                           args.figures / "crosstab_example_S20_vs_S40.png", 20, 40)
+    joint = search_thresholds_joint(grid, args.runs, args.figures.parent, groups_line)
+    print(joint.to_string(index=False))
 
 
 if __name__ == "__main__":

@@ -57,14 +57,15 @@ Jaccard threshold at which each snapshot-count line reaches the dashed value
 
 ## The dynamic groups at the intersection thresholds
 
-Figure: `figures/lifespan_vs_size_at_theta_star.png`, table: `groups_at_theta_star.csv`
+Figure: `figures/lifespan_classes_at_theta_star.png`, table: `groups_at_theta_star.csv`
 
 For every snapshot count whose line reaches the dashed value of the previous section, the
 identity matching is re-run on the cached Louvain communities at exactly the
 interpolated threshold θ*. Snapshot counts whose line never reaches the dashed
-value are left out (interval S = 10, overlap S = 50). Each dynamic group is
-drawn by lifespan (days between the end of its first and last snapshot window)
-and maximum size (log scale).
+value are left out (interval S = 10, overlap S = 50). The figure shows, per
+snapshot count, two bars: the groups observed in one snapshot only and the groups
+living at least 100 days (lifespan = days between the end of the first and the
+last snapshot window of the group).
 
 | approach   | S  | θ*    | groups | median lifespan (days) | median max size | single-snapshot groups | groups ≥ 100 days |
 |------------|----|-------|--------|------------------------|-----------------|------------------------|-------------------|
@@ -79,7 +80,7 @@ and maximum size (log scale).
 | interval   | 50 | 0.106 | 199    | 0.0                    | 26.0            | 107                    | 21                |
 | overlap    | 10 | 0.793 | 110    | 0.0                    | 54.5            | 93                     | 2                 |
 | overlap    | 20 | 0.463 | 112    | 25.0                   | 54.0            | 54                     | 13                |
-| overlap    | 30 | 0.316 | 109    | 17.0                   | 33.0            | 40                     | ~17               |
+| overlap    | 30 | 0.316 | 109    | 17.0                   | 33.0            | 40                     | 16                |
 | overlap    | 40 | 0.228 | 109    | 12.8                   | 32.0            | 43                     | 18                |
 
 ### Observations
@@ -104,3 +105,260 @@ and maximum size (log scale).
 - Visually, the long-lived tail (lifespan > 100 days, size 30 to 200) is populated by
   every snapshot count in cumulative, and by S ≥ 20 in interval and overlap. The
   overall shapes are similar, which the next section checks at member level.
+
+## Community comparison across snapshot counts
+
+Methodology: see the section "Robustness of the dynamic groups to the number of
+snapshots" in `paper_notes.md`.
+
+Tables: `group_matching_summary.csv` (one row per pair), `group_matching_pairs.csv`
+(every matched group pair with its mean Jaccard), and the full cross tables in
+`crosstabs/{approach}_S{i}_vs_S{j}.csv`.
+
+### Final table: Jaccard thresholds and the communities they produce
+
+The hypothesis is formulated for the thresholds $\theta^*_S$ that give every snapshot
+count the same number of dynamic groups $N^*$. For each pair of configurations
+$(S_i, \theta^*_{S_i})$ and $(S_j, \theta^*_{S_j})$ the table reports how well the
+resulting communities agree: the median and mean similarity of the one-to-one matched
+groups ($\mathcal{J}_{ij}$), the share of matched groups whose chronicles are
+identical on the common time points ($\bar{J} \ge 0.99$) and the ARI.
+
+**cumulative** (reference level $N^* = 70$ groups): $\theta^*_{10} = 0.867$, $\theta^*_{20} = 0.753$, $\theta^*_{30} = 0.564$, $\theta^*_{40} = 0.523$, $\theta^*_{50} = 0.433$
+
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
+|---|---|---|---|---|---|
+| (10, 0.867) | (20, 0.753) | 1.00 | 0.81 | 59 % | 0.67 |
+| (10, 0.867) | (30, 0.564) | 1.00 | 0.83 | 63 % | 0.68 |
+| (10, 0.867) | (40, 0.523) | 1.00 | 0.82 | 58 % | 0.67 |
+| (10, 0.867) | (50, 0.433) | 1.00 | 0.86 | 65 % | 0.60 |
+| (20, 0.753) | (30, 0.564) | 1.00 | 0.82 | 70 % | 0.76 |
+| (20, 0.753) | (40, 0.523) | 1.00 | 0.78 | 57 % | 0.88 |
+| (20, 0.753) | (50, 0.433) | 1.00 | 0.83 | 65 % | 0.91 |
+| (30, 0.564) | (40, 0.523) | 1.00 | 0.86 | 68 % | 0.81 |
+| (30, 0.564) | (50, 0.433) | 1.00 | 0.90 | 76 % | 0.76 |
+| (40, 0.523) | (50, 0.433) | 1.00 | 0.89 | 76 % | 0.90 |
+
+**interval** (reference level $N^* = 200$ groups): $\theta^*_{20} = 0.517$, $\theta^*_{30} = 0.321$, $\theta^*_{40} = 0.221$, $\theta^*_{50} = 0.106$
+
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
+|---|---|---|---|---|---|
+| (20, 0.517) | (30, 0.321) | 0.53 | 0.52 | 1 % | 0.51 |
+| (20, 0.517) | (40, 0.221) | 0.35 | 0.37 | 5 % | 0.44 |
+| (20, 0.517) | (50, 0.106) | 0.33 | 0.34 | 0 % | 0.49 |
+| (30, 0.321) | (40, 0.221) | 0.44 | 0.47 | 4 % | 0.57 |
+| (30, 0.321) | (50, 0.106) | 0.37 | 0.35 | 2 % | 0.52 |
+| (40, 0.221) | (50, 0.106) | 0.46 | 0.46 | 8 % | 0.54 |
+
+**overlap** (reference level $N^* = 110$ groups): $\theta^*_{10} = 0.793$, $\theta^*_{20} = 0.463$, $\theta^*_{30} = 0.316$, $\theta^*_{40} = 0.228$
+
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
+|---|---|---|---|---|---|
+| (10, 0.793) | (20, 0.463) | 0.40 | 0.39 | 1 % | 0.41 |
+| (10, 0.793) | (30, 0.316) | 0.30 | 0.32 | 1 % | 0.27 |
+| (10, 0.793) | (40, 0.228) | 0.23 | 0.25 | 0 % | 0.28 |
+| (20, 0.463) | (30, 0.316) | 0.28 | 0.32 | 1 % | 0.51 |
+| (20, 0.463) | (40, 0.228) | 0.22 | 0.27 | 1 % | 0.52 |
+| (30, 0.316) | (40, 0.228) | 0.33 | 0.35 | 5 % | 0.58 |
+
+### Example of each approach
+
+Figure: `figures/crosstab_example_S20_vs_S40.png` (S = 20 vs S = 40, the only pair
+available for all three approaches with 20 common time points).
+
+For each approach a small excerpt of the cross table, with the mean Jaccard written
+in each cell (empty = 0). Rows: 5 consecutive groups of $\mathbb{D}_{S=20}$ around the
+median matched rank, i.e. typical rather than best matches. Columns: their matched
+groups of $\mathbb{D}_{S=40}$ (diagonal, inside the dashed box), followed by up to 3
+other groups of $S = 40$ that share members with these rows (largest Jaccard sum).
+
+- Cumulative (ranks 25–29 of 53): diagonal of 1.00 and no other partner at all, a
+  1:1 correspondence even for a typical group.
+- Interval (ranks 68–72 of 138): matched values about 0.35, plus small overlaps
+  (0.04 to 0.06) with other groups.
+- Overlap (ranks 39–43 of 81): matched values about 0.22, and the rows spread over
+  several further groups (up to 0.07).
+
+Partners per group (cells with Jaccard > 0 per row), over all pairs of snapshot
+counts: cumulative 1.00 to 1.11, interval 4.1 to 5.0, overlap 4.3 to 6.9.
+
+### How to read a cross table
+
+Each file is a matrix: the rows are the dynamic groups $D_1, D_2, \ldots$ of
+$\mathbb{D}_{S_i}$, the columns the dynamic groups $D'_1, D'_2, \ldots$ of
+$\mathbb{D}_{S_j}$ (original group id in brackets), and each cell is the mean
+Jaccard index of the two groups' member sets over the common time points
+(0 at a time point where only one of the two exists). Rows and columns are ordered
+by the linear sum assignment: $D_k$ is matched to $D'_k$, so the matched values
+lie on the diagonal, sorted from best to worst; groups left without a partner come
+last. Cells with Jaccard 0 are left empty. A clean 1:1 correspondence shows up as a
+diagonal of values near 1 with empty cells elsewhere.
+
+Excerpts (six matched pairs spread evenly from the best to the worst match; the
+diagonal, in bold, is the matched value; empty cells have Jaccard 0):
+
+**Cumulative, S = 10 vs S = 20** (`crosstabs/cumulative_S10_vs_S20.csv`, 66 × 46; showing matched ranks 1, 10, 19, 28, 37, 46 of 46)
+
+| S=10 \\ S=20 | D'1 | D'10 | D'19 | D'28 | D'37 | D'46 |
+|---|---|---|---|---|---|---|
+| D1 | **1.00** |  |  |  |  |  |
+| D10 |  | **1.00** |  |  |  |  |
+| D19 |  |  | **1.00** |  |  |  |
+| D28 |  |  |  | **0.83** |  |  |
+| D37 |  |  |  |  | **0.60** |  |
+| D46 |  |  |  |  | 0.30 |  |
+
+**Interval, S = 20 vs S = 30** (`crosstabs/interval_S20_vs_S30.csv`, 117 × 93; showing matched ranks 1, 19, 38, 56, 75, 93 of 93)
+
+| S=20 \\ S=30 | D'1 | D'19 | D'38 | D'56 | D'75 | D'93 |
+|---|---|---|---|---|---|---|
+| D1 | **1.00** |  |  |  |  |  |
+| D19 |  | **0.75** |  |  |  |  |
+| D38 |  |  | **0.60** |  |  |  |
+| D56 |  |  |  | **0.48** |  |  |
+| D75 |  |  |  |  | **0.35** |  |
+| D93 |  |  |  |  |  |  |
+
+**Overlap, S = 10 vs S = 20** (`crosstabs/overlap_S10_vs_S20.csv`, 110 × 83; showing matched ranks 1, 17, 34, 50, 67, 83 of 83)
+
+| S=10 \\ S=20 | D'1 | D'17 | D'34 | D'50 | D'67 | D'83 |
+|---|---|---|---|---|---|---|
+| D1 | **1.00** |  |  |  |  |  |
+| D17 |  | **0.59** |  |  |  |  |
+| D34 |  |  | **0.41** |  |  |  |
+| D50 |  |  |  | **0.33** |  |  |
+| D67 |  |  |  |  | **0.23** |  |
+| D83 |  |  |  |  |  |  |
+
+
+| approach | $S_i$–$S_j$ | $|T_{S_i}|$ / $|T_{S_j}|$ | $|T_{ij}|$ | $|\mathbb{D}_{S_i}|$ / $|\mathbb{D}_{S_j}|$ | chronicles compared | mean chronicle length on $T_{ij}$ | size of $\mathbf{M}^{(ij)}$ | matched pairs | mean $\mathcal{J}_{ij}$ | median $\mathcal{J}_{ij}$ | ARI |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| cumulative | 10–20 | 10 / 20 | 10 | 66 / 71 | 66 / 46 | 2.0 / 2.9 | 66 × 46 | 46 | 0.814 | 1.000 | 0.674 |
+| cumulative | 10–30 | 10 / 30 | 10 | 66 / 72 | 66 / 43 | 2.0 / 3.1 | 66 × 43 | 43 | 0.835 | 1.000 | 0.679 |
+| cumulative | 10–40 | 10 / 40 | 10 | 66 / 70 | 66 / 38 | 2.0 / 3.5 | 66 × 38 | 38 | 0.821 | 1.000 | 0.673 |
+| cumulative | 10–50 | 10 / 50 | 10 | 66 / 70 | 66 / 34 | 2.0 / 3.9 | 66 × 34 | 34 | 0.858 | 1.000 | 0.602 |
+| cumulative | 20–30 | 20 / 30 | 10 | 71 / 72 | 46 / 43 | 2.9 / 3.1 | 46 × 43 | 43 | 0.824 | 1.000 | 0.758 |
+| cumulative | 20–40 | 20 / 40 | 20 | 71 / 70 | 71 / 53 | 3.8 / 5.0 | 71 × 53 | 53 | 0.782 | 1.000 | 0.877 |
+| cumulative | 20–50 | 20 / 50 | 10 | 71 / 70 | 46 / 34 | 2.9 / 3.9 | 46 × 34 | 34 | 0.831 | 1.000 | 0.905 |
+| cumulative | 30–40 | 30 / 40 | 10 | 72 / 70 | 43 / 38 | 3.1 / 3.5 | 43 × 38 | 38 | 0.857 | 1.000 | 0.807 |
+| cumulative | 30–50 | 30 / 50 | 10 | 72 / 70 | 43 / 34 | 3.1 / 3.9 | 43 × 34 | 34 | 0.895 | 1.000 | 0.759 |
+| cumulative | 40–50 | 40 / 50 | 10 | 70 / 70 | 38 / 34 | 3.5 / 3.9 | 38 × 34 | 34 | 0.891 | 1.000 | 0.903 |
+| interval | 20–30 | 20 / 30 | 10 | 205 / 199 | 117 / 93 | 1.2 / 1.5 | 117 × 93 | 93 | 0.521 | 0.526 | 0.508 |
+| interval | 20–40 | 20 / 40 | 20 | 205 / 196 | 205 / 138 | 1.5 / 2.2 | 205 × 138 | 138 | 0.373 | 0.351 | 0.444 |
+| interval | 20–50 | 20 / 50 | 10 | 205 / 199 | 117 / 90 | 1.2 / 1.7 | 117 × 90 | 90 | 0.337 | 0.329 | 0.491 |
+| interval | 30–40 | 30 / 40 | 10 | 199 / 196 | 93 / 89 | 1.5 / 1.6 | 93 × 89 | 89 | 0.470 | 0.444 | 0.574 |
+| interval | 30–50 | 30 / 50 | 10 | 199 / 199 | 93 / 90 | 1.5 / 1.7 | 93 × 90 | 90 | 0.352 | 0.370 | 0.522 |
+| interval | 40–50 | 40 / 50 | 10 | 196 / 199 | 89 / 90 | 1.6 / 1.7 | 89 × 90 | 89 | 0.459 | 0.455 | 0.544 |
+| overlap | 10–20 | 10 / 20 | 10 | 110 / 112 | 110 / 83 | 1.3 / 1.7 | 110 × 83 | 83 | 0.390 | 0.395 | 0.411 |
+| overlap | 10–30 | 10 / 30 | 10 | 110 / 109 | 110 / 69 | 1.3 / 2.2 | 110 × 69 | 69 | 0.322 | 0.299 | 0.269 |
+| overlap | 10–40 | 10 / 40 | 10 | 110 / 109 | 110 / 65 | 1.3 / 2.3 | 110 × 65 | 65 | 0.247 | 0.227 | 0.275 |
+| overlap | 20–30 | 20 / 30 | 20 | 112 / 109 | 112 / 94 | 2.6 / 3.2 | 112 × 94 | 94 | 0.324 | 0.278 | 0.509 |
+| overlap | 20–40 | 20 / 40 | 20 | 112 / 109 | 112 / 81 | 2.6 / 3.6 | 112 × 81 | 81 | 0.267 | 0.220 | 0.520 |
+| overlap | 30–40 | 30 / 40 | 30 | 109 / 109 | 109 / 100 | 4.2 / 4.4 | 109 × 100 | 100 | 0.353 | 0.327 | 0.578 |
+
+- $|T_{S_i}|$, $|T_{S_j}|$: number of time points (snapshots) of each configuration.
+- $|T_{ij}|$: number of common time points (for overlapping windows, paired nearest window ends).
+- $|\mathbb{D}_{S_i}|$, $|\mathbb{D}_{S_j}|$: number of dynamic groups at $\theta^*$.
+- chronicles compared: dynamic groups that exist at one or more common time points; the
+  others exist only between common time points and are excluded.
+- mean chronicle length on $T_{ij}$: average number of common time points at which a
+  compared group exists.
+- size of $\mathbf{M}^{(ij)}$: dimensions of the cross table; matched pairs $= \min(n_i, n_j)$.
+
+### Observations
+
+- Cumulative: median matched similarity 1.0 for every pair, clean 1:1 diagonal,
+  ARI 0.60 to 0.91 (lowest with S = 10). 65 % of the matched pairs are identical on
+  the common time points.
+- Cumulative snapshots at a common time point are the same graph [0, t], and Louvain
+  (seed 42) returns identical communities there (checked for S = 10 vs 50 at all 10
+  time points), so the disagreement comes only from how communities are chained.
+- Interval: median 0.33 to 0.53, ARI 0.44 to 0.57, 3.6 % identical pairs.
+- Overlap: median 0.22 to 0.40, ARI 0.27 to 0.58, 1.8 % identical pairs; pairs with
+  S = 10 agree least.
+- Many groups exist only between common time points and are excluded (up to 36 of
+  70 for cumulative S = 50 vs 10, up to 109 of 199 for interval).
+- Hypothesis supported for cumulative; for interval and overlap not supported at the
+  equal-count thresholds θ*, nor at any other threshold combination (see the joint
+  search below).
+
+## Joint search for the best-matching thresholds
+
+Tables: `joint_threshold_search.csv` (every pair, every θ_i × θ_j, 17 × 17),
+`joint_threshold_search_best.csv` (best combination per pair). Methodology: section
+"Joint search for the best-matching thresholds" in `paper_notes.md`.
+
+- Both thresholds varied over 0.10 to 0.90 (step 0.05).
+- Only groups with a history are compared: groups present at ≥ 2 common time points.
+- Score = sum of matched mean Jaccard / max(n_i, n_j) (unmatched groups count as 0).
+- A combination is eligible only with ≥ 10 such groups on both sides (best scores are
+  the same for any minimum from 5 to 15).
+
+| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
+|---|---|---|---|---|---|---|---|
+| cumulative | 10–20 | (0.45, 0.35) | 18 / 17 | 0.94 | 1.00 | 0.98 | 33 % / 40 % |
+| cumulative | 10–30 | (0.70, 0.55) | 22 / 20 | 0.81 | 1.00 | 0.88 | 45 % / 41 % |
+| cumulative | 10–40 | (0.45, 0.10) | 18 / 16 | 0.80 | 1.00 | 0.98 | 33 % / 33 % |
+| cumulative | 10–50 | (0.80, 0.70) | 20 / 20 | 0.77 | 0.95 | 0.88 | 61 % / 52 % |
+| cumulative | 20–30 | (0.60, 0.65) | 23 / 23 | 0.84 | 1.00 | 0.74 | 45 % / 51 % |
+| cumulative | 20–40 | (0.35, 0.35) | 23 / 22 | 0.81 | 1.00 | 0.96 | 40 % / 31 % |
+| cumulative | 20–50 | (0.35, 0.45) | 17 / 16 | 0.76 | 1.00 | 0.96 | 40 % / 41 % |
+| cumulative | 30–40 | (0.30, 0.40) | 16 / 16 | 0.92 | 1.00 | 0.96 | 31 % / 34 % |
+| cumulative | 30–50 | (0.30, 0.10) | 16 / 16 | 0.89 | 1.00 | 0.97 | 31 % / 37 % |
+| cumulative | 40–50 | (0.40, 0.10) | 16 / 16 | 0.87 | 1.00 | 0.94 | 34 % / 37 % |
+| interval | 20–30 | (0.25, 0.25) | 26 / 25 | 0.50 | 0.56 | 0.60 | 50 % / 56 % |
+| interval | 20–40 | (0.35, 0.25) | 50 / 47 | 0.31 | 0.35 | 0.55 | 60 % / 60 % |
+| interval | 20–50 | (0.50, 0.35) | 17 / 17 | 0.38 | 0.41 | 0.54 | 75 % / 75 % |
+| interval | 30–40 | (0.45, 0.40) | 15 / 15 | 0.49 | 0.62 | 0.69 | 74 % / 76 % |
+| interval | 30–50 | (0.40, 0.35) | 17 / 17 | 0.46 | 0.56 | 0.62 | 69 % / 75 % |
+| interval | 40–50 | (0.40, 0.40) | 15 / 16 | 0.57 | 0.77 | 0.67 | 76 % / 79 % |
+| overlap | 10–20 | (0.10, 0.25) | 20 / 21 | 0.41 | 0.44 | 0.50 | 36 % / 32 % |
+| overlap | 10–30 | (0.65, 0.40) | 23 / 22 | 0.37 | 0.44 | 0.53 | 72 % / 42 % |
+| overlap | 10–40 | (0.45, 0.10) | 24 / 24 | 0.33 | 0.31 | 0.46 | 52 % / 37 % |
+| overlap | 20–30 | (0.80, 0.75) | 37 / 39 | 0.42 | 0.46 | 0.57 | 84 % / 82 % |
+| overlap | 20–40 | (0.45, 0.40) | 60 / 51 | 0.31 | 0.36 | 0.60 | 44 % / 53 % |
+| overlap | 30–40 | (0.70, 0.65) | 68 / 61 | 0.45 | 0.55 | 0.65 | 78 % / 77 % |
+
+### Observations
+
+- Cumulative: best score 0.76–0.94, median matched similarity 1.0 (0.95 for 10–50), ARI
+  0.74–0.99. Flat optimum: 22–90 of 289 combinations within 0.05 of the best, thresholds
+  from 0.10 to about 0.80.
+- Interval: best score 0.31–0.57; overlap: 0.31–0.45. No threshold combination makes
+  their dynamic groups agree.
+- An earlier version without the two restrictions picked thresholds that link almost
+  nothing (84–99 % single-snapshot groups) for interval and overlap, and once a
+  combination with a single compared group; the restrictions remove both effects.
+
+## Decisions
+
+Choices made by the author during the analysis.
+
+- Matching criterion: absolute Jaccard only (not the adaptive Jaccard, not stability).
+- Reference levels for the number of groups: cumulative 70, interval 200,
+  overlap 110.
+- Interval and overlap have no number of groups reached by all five snapshot
+  counts; the analysis uses only the snapshot counts that reach the reference
+  level (interval: 20 to 50, overlap: 10 to 40).
+- Thresholds: the exact interpolated θ* is used (matching re-run at θ*), not the
+  nearest grid value.
+- Group descriptors at θ*: lifespan (days between the first and last window end)
+  and maximum size.
+- Community comparison across snapshot counts, overlapping windows: the window ends
+  of different snapshot counts do not coincide, so each time point of the
+  configuration with fewer snapshots is paired with the nearest window end of the
+  other configuration (window ends, not window centres, for consistency with
+  cumulative and interval).
+- Community comparison across snapshot counts, missing time points: a common time
+  point at which only one of the two groups exists counts as Jaccard 0 in the mean.
+- Presentation: the group lifespans are shown as bars (groups observed in one snapshot
+  only vs groups living ≥ 100 days), not as a lifespan/size scatter.
+- Presentation: the cross tables are reported as tables (CSV files and excerpts above),
+  not plotted; no box plots of the matched values.
+- Presentation: cells of the cross tables with Jaccard 0 are left empty.
+- Presentation: the cross tables are illustrated by one small annotated excerpt per
+  approach (S = 20 vs S = 40, 5 groups around the median matched rank plus their
+  strongest other partners), not by heatmaps of the full table or a bipartite graph.
+- Joint threshold search: both thresholds varied over 0.10–0.90; only groups present at
+  ≥ 2 common time points are compared (dynamic groups with a history); score = sum of
+  matched mean Jaccard / max(n_i, n_j); at least 10 compared groups on both sides.

@@ -4,3 +4,4 @@ ipykernel>=6.0
 plotly>=5.20
 nbformat>=4.2
 matplotlib>=3.7
+scipy>=1.10
