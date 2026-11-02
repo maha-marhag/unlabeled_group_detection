@@ -330,6 +330,35 @@ Tables: `joint_threshold_search.csv` (every pair, every θ_i × θ_j, 17 × 17),
   nothing (84–99 % single-snapshot groups) for interval and overlap, and once a
   combination with a single compared group; the restrictions remove both effects.
 
+## Community detection algorithm: Louvain vs greedy modularity
+
+Independent of the threshold analysis. Script: `scripts/algorithm_comparison.py`;
+outputs in `outputs/algorithm_comparison/`:
+`approach_summary.csv`, `snapshot_summary.csv` (one row per snapshot),
+`matched_pairs.csv` (every matched pair of communities), `crosstabs/{approach}_tNN.csv`
+(cross table per snapshot, Louvain rows, greedy columns, matched pairs on the diagonal,
+empty = Jaccard 0), `figures/crosstab_example.png` (one excerpt per approach: the
+snapshot with the median mean matched Jaccard, matched ranks around the median).
+
+S = 20 for all approaches; static communities compared snapshot by snapshot (no dynamic
+groups, no threshold). Louvain reproduces the existing 20-snapshot runs exactly.
+
+| approach | communities Louvain / greedy | matched pairs | mean $J$ | median $J$ | $J \ge 0.5$ | identical ($J \ge 0.99$) | partners per community | mean $J$ per snapshot (min–max) | mean $J$, size ≥ 20 / < 20 |
+|---|---|---|---|---|---|---|---|---|---|
+| cumulative | 267 / 269 | 258 | 0.71 | 0.79 | 78 % | 14 % | 2.68 | 0.55–0.83 | 0.69 / 0.83 |
+| interval | 301 / 300 | 287 | 0.75 | 0.83 | 83 % | 17 % | 2.53 | 0.62–0.88 | 0.72 / 0.94 |
+| overlap | 289 / 285 | 280 | 0.72 | 0.78 | 79 % | 16 % | 2.55 | 0.54–0.87 | 0.70 / 0.85 |
+
+### Observations
+
+- Almost the same number of communities from both algorithms; nearly all matched.
+- Median matched Jaccard 0.78–0.83, 78–83 % of pairs ≥ 0.5, 14–17 % identical;
+  2.5–2.7 partners per community (boundary members assigned differently).
+- Large communities (≥ 20 members) agree less (0.69–0.72) than small ones (0.83–0.94).
+- The three approaches are affected equally (mean 0.71 / 0.75 / 0.72).
+- Largely 1:1 correspondence: broadly robust to the algorithm, but boundaries of large
+  communities vary.
+
 ## Decisions
 
 Choices made by the author during the analysis.
@@ -362,3 +391,7 @@ Choices made by the author during the analysis.
 - Joint threshold search: both thresholds varied over 0.10–0.90; only groups present at
   ≥ 2 common time points are compared (dynamic groups with a history); score = sum of
   matched mean Jaccard / max(n_i, n_j); at least 10 compared groups on both sides.
+- Algorithm comparison: greedy modularity maximisation (networkx
+  `greedy_modularity_communities`, Clauset–Newman–Moore) vs Louvain, S = 20, same
+  settings (weighted, resolution 1, min. community size 3); static communities compared
+  per snapshot.

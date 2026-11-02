@@ -1,0 +1,4 @@
+approach,snapshots,louvain_communities,greedy_communities,matched_pairs,mean_matched_jaccard,median_matched_jaccard,identical_share,share_at_least_0_5,partners_per_louvain_community
+cumulative,20,267,269,258,0.706,0.794,0.136,0.783,2.68
+interval,20,301,300,287,0.749,0.831,0.174,0.826,2.53
+overlap,20,289,285,280,0.722,0.784,0.157,0.789,2.55
