@@ -361,6 +361,23 @@ groups, no threshold). Louvain reproduces the existing 20-snapshot runs exactly.
 
 ## Fixed window width: robustness to the number of snapshots
 
+### Summary
+
+| approach | window width | identical matched groups | matched groups with J̄ ≥ 0.5 | best score: mean (range) |
+|---|---|---|---|---|
+| cumulative | depends on S | 65 % | 91 % | 0.84 (0.76–0.94) |
+| cumulative | 50 days | 58 % | 85 % | 0.82 (0.69–0.91) |
+| interval | depends on S | 4 % | 35 % | 0.45 (0.31–0.57) |
+| interval | 50 days | – (one snapshot count) | – | – |
+| overlap | depends on S | 2 % | 23 % | 0.38 (0.31–0.45) |
+| overlap | 50 days | 66 % | 88 % | 0.74 (0.63–0.83) |
+
+Percentages: matched pairs at θ*, pooled over all pairs of snapshot counts. Score: best
+score of the joint threshold search per pair of snapshot counts.
+
+![window width summary](figures/window_width_summary.png)
+
+
 Rerun of the sensitivity analysis with a fixed window width W = 50 days. The stride is
 Δ = W/k (k = 1…5) and the window ends are anchored at the end of the period,
 t = 526 − jΔ (t ≥ 50), so S = ⌊476k/50⌋ + 1 = 10, 20, 29, 39, 48. Cumulative windows

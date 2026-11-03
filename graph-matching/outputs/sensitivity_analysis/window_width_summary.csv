@@ -1,0 +1,6 @@
+approach,setup,identical_share,share_at_least_0_5,mean_best_score,min_best_score,max_best_score
+cumulative,W depends on S,0.65,0.912,0.839,0.757,0.939
+interval,W depends on S,0.036,0.353,0.452,0.308,0.574
+overlap,W depends on S,0.018,0.23,0.381,0.306,0.447
+cumulative,W = 50 days,0.577,0.847,0.815,0.687,0.91
+overlap,W = 50 days,0.657,0.88,0.742,0.626,0.827
