@@ -6,7 +6,8 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
 
 ``groups_vs_jaccard_by_snapshots.png``:
     one subplot per approach; x = Jaccard threshold, y = number of groups,
-    one line per snapshot count (10..50). A horizontal dashed line marks a
+    one line per snapshot count (fixed 50-day windows, see ``config_sensitivity.py``:
+    10, 20, 29, 39, 48 snapshots; interval only 10). A horizontal dashed line marks a
     number of groups, so the intersections with the five lines can be read off.
 
 ``lifespan_classes_at_theta_star.png``, ``groups_at_theta_star.csv``:
@@ -19,8 +20,9 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
 ``crosstabs/{approach}_S{i}_vs_S{j}.csv``, ``group_matching_summary.csv``,
 ``group_matching_pairs.csv``:
     for every pair of snapshot counts S_i < S_j reaching the dashed value, the
-    dynamic groups at theta* are compared over their common time points (window
-    ends; for overlap, each window end of S_i paired with the nearest of S_j).
+    dynamic groups at theta* are compared over their common time points (the window
+    ends shared by both runs; with fixed-width windows anchored at the cutoff they
+    coincide exactly).
     The cross table holds the mean Jaccard of the member sets of every pair of
     groups (0 where only one group exists; cells equal to 0 are left empty), the groups are matched one-to-one by
     linear sum assignment, and the Adjusted Rand Index of the node-time labels
@@ -34,8 +36,8 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
     partner counts as 0; the best pair of thresholds maximises the score among
     the combinations with at least MIN_COMPARED_GROUPS such groups on both sides.
 
-``crosstab_example_S20_vs_S40.png``:
-    one small excerpt of the cross table per approach, with the Jaccard value
+``crosstab_example_S20_vs_S39.png``:
+    one small excerpt of the cross table per approach with both snapshot counts, with the Jaccard value
     written in each cell (empty where 0). Rows: EXAMPLE_ROWS consecutive groups of
     S_i around the median matched rank. Columns: their matched groups of S_j
     (diagonal) followed by up to EXAMPLE_EXTRA_COLUMNS other partners with the
@@ -63,11 +65,11 @@ from graph_matching import SECONDS_PER_DAY, find_project_root
 from identity_events import assign_ids, build_identity_groups, load_snapshots
 
 APPROACHES = ["cumulative", "interval", "overlap"]
-COUNT_COLORS = {10: "#2a78d6", 20: "#eb6834", 30: "#1baf7a", 40: "#eda100", 50: "#4a3aa7"}
-COUNT_MARKERS = {10: "o", 20: "s", 30: "^", 40: "D", 50: "v"}
+COUNT_COLORS = {10: "#2a78d6", 20: "#eb6834", 29: "#1baf7a", 39: "#eda100", 48: "#4a3aa7"}
+COUNT_MARKERS = {10: "o", 20: "s", 29: "^", 39: "D", 48: "v"}
 # Round number of groups marked by the dashed line, chosen close to the
 # value that intercepts the most snapshot-count lines.
-GROUPS_LINE = {"cumulative": 70, "interval": 200, "overlap": 110}
+GROUPS_LINE = {"cumulative": 70, "interval": 110, "overlap": 110}
 LONG_LIVED_DAYS = 100
 # Only groups with a history (seen at >= 2 common time points) enter the threshold search.
 MIN_COMMON_POINTS = 2
@@ -93,7 +95,7 @@ def plot_groups_vs_jaccard(grid: pd.DataFrame, out: Path, groups_line: dict[str,
         ranges = sub.groupby("snapshot_count")["number_of_groups"].agg(["min", "max"])
         hits = int(((ranges["min"] <= value) & (ranges["max"] >= value)).sum())
         ax.axhline(value, color="#52514e", linestyle="dashed", linewidth=1.2)
-        ax.annotate(f"{value} groups ({hits}/5 lines)", xy=(0.9, value), xytext=(0, -5),
+        ax.annotate(f"{value} groups ({hits}/{len(ranges)} lines)", xy=(0.9, value), xytext=(0, -5),
                     textcoords="offset points", ha="right", va="top", fontsize=8,
                     color="#52514e", bbox=dict(boxstyle="round,pad=0.2", fc="white",
                                                ec="none", alpha=0.85))
@@ -203,8 +205,6 @@ def plot_lifespan_classes(grid: pd.DataFrame, runs: Path, out: Path, table_out: 
 def time_pairs(times_i: list[float], times_j: list[float], approach: str
                ) -> list[tuple[float, float]]:
     """Common time points P_ij of two runs, S_i having fewer snapshots than S_j."""
-    if approach == "overlap":
-        return [(t, min(times_j, key=lambda other: abs(other - t))) for t in times_i]
     common = {round(t, 6) for t in times_i} & {round(t, 6) for t in times_j}
     return [(t, t) for t in times_i if round(t, 6) in common]
 
@@ -375,9 +375,10 @@ def search_thresholds_joint(grid: pd.DataFrame, runs: Path, out_dir: Path,
 
 
 def plot_crosstab_examples(crosstabs: Path, out: Path, s_i: int, s_j: int) -> None:
-    fig, axes = plt.subplots(1, len(APPROACHES), figsize=(5.4 * len(APPROACHES), 3.9))
+    approaches = [a for a in APPROACHES if (crosstabs / f"{a}_S{s_i}_vs_S{s_j}.csv").exists()]
+    fig, axes = plt.subplots(1, len(approaches), figsize=(5.4 * len(approaches), 3.9), squeeze=False)
     cmap = plt.get_cmap("Blues")
-    for ax, approach in zip(axes, APPROACHES):
+    for ax, approach in zip(axes[0], approaches):
         table = pd.read_csv(crosstabs / f"{approach}_S{s_i}_vs_S{s_j}.csv", index_col=0).fillna(0)
         matched = min(table.shape)
         first = max(0, min(matched // 2 - EXAMPLE_ROWS // 2, matched - EXAMPLE_ROWS))
@@ -447,7 +448,7 @@ def main() -> None:
     summary = compare_snapshot_counts(grid, args.runs, args.figures.parent, groups_line)
     print(summary.to_string(index=False))
     plot_crosstab_examples(args.figures.parent / "crosstabs",
-                           args.figures / "crosstab_example_S20_vs_S40.png", 20, 40)
+                           args.figures / "crosstab_example_S20_vs_S39.png", 20, 39)
     joint = search_thresholds_joint(grid, args.runs, args.figures.parent, groups_line)
     print(joint.to_string(index=False))
 

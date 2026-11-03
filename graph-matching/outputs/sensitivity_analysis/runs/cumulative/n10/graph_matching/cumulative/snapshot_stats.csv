@@ -1,0 +1,11 @@
+approach,snapshot_index,snapshot_label,start_day,end_day,temporal_edges,nodes,weighted_edges,communities
+cumulative,0,days_0.00_76.00,0.00,76.00,38367,771,5358,14
+cumulative,1,days_0.00_126.00,0.00,126.00,66892,804,7089,13
+cumulative,2,days_0.00_176.00,0.00,176.00,99325,827,8403,13
+cumulative,3,days_0.00_226.00,0.00,226.00,132069,849,9775,11
+cumulative,4,days_0.00_276.00,0.00,276.00,166934,865,10934,11
+cumulative,5,days_0.00_326.00,0.00,326.00,188798,879,11601,13
+cumulative,6,days_0.00_376.00,0.00,376.00,227676,901,12778,14
+cumulative,7,days_0.00_426.00,0.00,426.00,249348,938,13444,13
+cumulative,8,days_0.00_476.00,0.00,476.00,286990,969,14828,14
+cumulative,9,days_0.00_526.00,0.00,526.00,329910,986,16025,15

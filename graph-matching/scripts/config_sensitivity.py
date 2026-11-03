@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Configuration sensitivity of dynamic-group identification.
 
-For every approach (cumulative, interval, overlap) and every requested snapshot
-count, the Louvain pipeline is run once and cached. The identity-matching step
+For every approach (cumulative, interval, overlap) the snapshot windows have a fixed
+width of WINDOW_DAYS days and end every WINDOW_DAYS / k days, anchored at the cutoff
+(``graph_matching.make_fixed_windows``); the stride divisor k sets the number of
+snapshots (k = 1..5 gives 10, 20, 29, 39, 48 snapshots). Interval windows do not
+overlap, so interval only has k = 1. For every approach and k, the Louvain pipeline
+is run once and cached. The identity-matching step
 is then repeated over a grid of thresholds for three matching criteria:
 
 - ``stability``: the current rule (prospective or retrospective stability
@@ -15,7 +19,7 @@ is then repeated over a grid of thresholds for three matching criteria:
 
 Outputs (``outputs/sensitivity_analysis``):
 
-- ``runs/{approach}/n{count}/graph_matching``: cached communities.
+- ``runs/{approach}/n{count}/graph_matching``: cached communities (count = number of snapshots).
 - ``number_of_groups.csv``: number of groups per (approach, count, criterion, threshold).
 - ``figures/number_of_groups_vs_{criterion}.png``: threshold sweeps at fixed snapshot counts.
 - ``figures/number_of_groups_vs_snapshots_{criterion}.png``: snapshot-count sweeps at fixed thresholds.
@@ -47,14 +51,14 @@ from identity_events import (
 )
 
 APPROACHES = ["cumulative", "interval", "overlap"]
-SNAPSHOT_COUNTS = [10, 20, 30, 40, 50]
+WINDOW_DAYS = 50
+CUTOFF_DAYS = 526
+STRIDE_DIVISORS = {"cumulative": [1, 2, 3, 4, 5], "interval": [1], "overlap": [1, 2, 3, 4, 5]}
 THRESHOLDS = [round(0.1 + 0.05 * i, 2) for i in range(17)]  # 0.10 ... 0.90
 CRITERIA = ["stability", "jaccard", "jaccard_adaptive"]
 CURRENT_CRITERION = ("stability", 0.4)
-BASELINE_OVERLAP_COUNT = 20
-BASELINE_SNAPSHOT_DAYS = 50
 
-COUNT_COLORS = {10: "#2a78d6", 20: "#eb6834", 30: "#1baf7a", 40: "#eda100", 50: "#4a3aa7"}
+COUNT_COLORS = {10: "#2a78d6", 20: "#eb6834", 29: "#1baf7a", 39: "#eda100", 48: "#4a3aa7"}
 CRITERION_STYLE = {
     "stability": ("#2a78d6", "current: stability"),
     "jaccard": ("#eb6834", "Jaccard (absolute)"),
@@ -67,28 +71,25 @@ METRICS = {"number_of_groups": "number of groups"}
 # --------------------------------------------------------------------------- #
 # Pipeline runs
 # --------------------------------------------------------------------------- #
-def ensure_run(edges, approach: str, count: int, run_dir: Path, force: bool) -> Path:
+def ensure_run(edges, approach: str, k: int, runs: Path, force: bool) -> Path:
+    windows = graph_matching.make_fixed_windows(approach, CUTOFF_DAYS, WINDOW_DAYS, k)
+    run_dir = runs / approach / f"n{len(windows)}" / "graph_matching"
     communities = run_dir / approach / "communities.csv"
     if communities.exists() and not force:
         return communities
-    num_snapshots = None if (approach == "overlap" and count == BASELINE_OVERLAP_COUNT) else count
-    windows = graph_matching.make_windows(
-        approach, 526, BASELINE_SNAPSHOT_DAYS, num_snapshots, 0.5
-    )
-    if len(windows) != count:
-        raise ValueError(f"{approach}: expected {count} windows, got {len(windows)}")
     graph_matching.run_approach(
         edges=edges,
         approach=approach,
         output_dir=run_dir,
-        cutoff_days=526,
-        snapshot_days=BASELINE_SNAPSHOT_DAYS,
-        num_snapshots=num_snapshots,
-        overlap_fraction=0.5,
+        cutoff_days=CUTOFF_DAYS,
+        snapshot_days=WINDOW_DAYS,
+        num_snapshots=len(windows),
+        overlap_fraction=1 - 1 / k,
         seed=42,
         resolution=1.0,
         min_community_size=3,
         match_threshold=0.5,
+        windows=windows,
     )
     return communities
 
@@ -125,14 +126,14 @@ def evaluate(snapshots, approach: str, criterion: str, threshold: float, j_ref: 
     }
 
 
-def build_grid(data_path: Path, output: Path, approaches, counts, force: bool) -> pd.DataFrame:
-    edges = graph_matching.load_edges(data_path, cutoff_days=526)
+def build_grid(data_path: Path, output: Path, approaches, force: bool) -> pd.DataFrame:
+    edges = graph_matching.load_edges(data_path, cutoff_days=CUTOFF_DAYS)
     rows = []
     for approach in approaches:
-        for count in counts:
-            run_dir = output / "runs" / approach / f"n{count}"
-            communities = ensure_run(edges, approach, count, run_dir / "graph_matching", force)
+        for k in STRIDE_DIVISORS[approach]:
+            communities = ensure_run(edges, approach, k, output / "runs", force)
             _, snapshots = load_snapshots(communities)
+            count = len(snapshots)
             j_ref = reference_jaccard(snapshots)
             for criterion in CRITERIA:
                 for threshold in THRESHOLDS:
@@ -215,8 +216,8 @@ def plot_snapshot_sweep(grid: pd.DataFrame, criterion: str, metric: str, thresho
                 continue
             ax.plot(sub["snapshot_count"], sub[metric], color=color, linewidth=2, marker="o",
                     markersize=4, label=approach)
-            current = [current_value(grid, approach, count, metric) for count in counts]
-            ax.plot(counts, current, color=color, linestyle="dashed", linewidth=1, alpha=0.7)
+            current = [current_value(grid, approach, count, metric) for count in sub["snapshot_count"]]
+            ax.plot(sub["snapshot_count"], current, color=color, linestyle="dashed", linewidth=1, alpha=0.7)
         ax.set_title(f"threshold {threshold:.2f}", fontsize=10)
         ax.set_xlabel("number of snapshots")
         ax.set_xticks(counts)
@@ -257,7 +258,6 @@ def parse_args() -> argparse.Namespace:
         default=root / "code" / "graph-matching" / "outputs" / "sensitivity_analysis",
     )
     parser.add_argument("--approach", choices=[*APPROACHES, "all"], default="all")
-    parser.add_argument("--snapshot-counts", type=int, nargs="+", default=SNAPSHOT_COUNTS)
     parser.add_argument("--force", action="store_true", help="Recompute cached Louvain runs.")
     parser.add_argument("--figures-only", action="store_true", help="Reuse number_of_groups.csv.")
     parser.add_argument("--sweeps", default="threshold,snapshots",
@@ -272,7 +272,7 @@ def main() -> None:
     if args.figures_only:
         grid = pd.read_csv(args.output / "number_of_groups.csv")
     else:
-        grid = build_grid(args.data, args.output, approaches, args.snapshot_counts, args.force)
+        grid = build_grid(args.data, args.output, approaches, args.force)
     make_figures(grid, args.output / "figures", set(args.sweeps.split(",")))
 
 

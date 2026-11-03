@@ -361,77 +361,156 @@ groups, no threshold). Louvain reproduces the existing 20-snapshot runs exactly.
 
 ## Fixed window width: robustness to the number of snapshots
 
-Window width fixed to W = 50 days, stride Δ = W/k (k = 1…5), window ends t = 50 + jΔ.
-Cumulative windows [0, t], sliding windows [t − 50, t]; for k = 1 the sliding windows
-do not overlap and are the interval approach with 50-day windows. Common time points
-are the exact intersections of the window ends (≥ 10 per pair, 20 for k = 2 vs 4).
-One Jaccard threshold θ for both configurations, swept over 0.10–0.90; θ chosen per
-approach by the highest mean score over the 10 pairs.
+Rerun of the sensitivity analysis with a fixed window width W = 50 days. The stride is
+Δ = W/k (k = 1…5) and the window ends are anchored at the end of the period,
+t = 526 − jΔ (t ≥ 50), so S = ⌊476k/50⌋ + 1 = 10, 20, 29, 39, 48. Cumulative windows
+[0, t], interval and overlapping windows [t − 50, t]; interval exists only for k = 1
+(identical to overlapping k = 1). Common time points are exact (t = 76, 126, …, 526;
+20 for S = 20 vs 39) and every configuration shares the last snapshot [476, 526].
 
-| $k$ | stride $\Delta$ (days) | window ends $t$ (days) | $S$ |
+Previous configuration (window width depending on S, windows covering [0, 526]):
+W = 526/S (interval), W = 2·526/(S + 1) (overlapping).
+
+| $k$ | stride $\Delta_k$ (days) | window ends $t$ (days) | $S$ |
 |---|---|---|---|
-| 1 | 50 | 50, 100, …, 500 | 10 |
-| 2 | 25 | 50, 75, …, 525 | 20 |
-| 3 | 16.7 | 50, 66.7, …, 516.7 | 29 |
-| 4 | 12.5 | 50, 62.5, …, 525 | 39 |
-| 5 | 10 | 50, 60, …, 520 | 48 |
+| 1 | 50 | 76, 126, …, 526 | 10 |
+| 2 | 25 | 51, 76, …, 526 | 20 |
+| 3 | 16.7 | 59.3, 76, …, 526 | 29 |
+| 4 | 12.5 | 51, 63.5, …, 526 | 39 |
+| 5 | 10 | 56, 66, …, 526 | 48 |
 
-### Score per threshold (mean over the 10 pairs, minimum in brackets)
+![groups vs Jaccard](figures/groups_vs_jaccard_by_snapshots.png)
+
+### Dashed line and intersections
+
+N* = 70 (cumulative, 5/5 lines), 110 (overlapping, 5/5 lines), 110 (interval, 1 line).
+
+| approach | $N^*$ | $S$ | $\theta^*_S$ | groups | single-snapshot groups | groups with $\ell \ge 100$ days |
+|---|---|---|---|---|---|---|
+| cumulative | 70 | 10 | 0.879 | 66 | 43 | 15 |
+| cumulative | 70 | 20 | 0.753 | 71 | 34 | 14 |
+| cumulative | 70 | 29 | 0.650 | 70 | 36 | 17 |
+| cumulative | 70 | 39 | 0.559 | 70 | 27 | 19 |
+| cumulative | 70 | 48 | 0.516 | 72 | 32 | 15 |
+| interval | 110 | 10 | 0.637 | 110 | 93 | 11 |
+| overlap | 110 | 10 | 0.637 | 110 | 93 | 11 |
+| overlap | 110 | 20 | 0.480 | 110 | 50 | 11 |
+| overlap | 110 | 29 | 0.423 | 111 | 47 | 11 |
+| overlap | 110 | 39 | 0.401 | 112 | 45 | 15 |
+| overlap | 110 | 48 | 0.373 | 108 | 35 | 19 |
+
+![lifespan classes](figures/lifespan_classes_at_theta_star.png)
+
+### Comparison at θ*
+
+| approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
+|---|---|---|---|---|---|---|---|---|
+| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.77 | 58 % | 0.68 |
+| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 0.79 | 54 % | 0.71 |
+| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 0.80 | 0.74 | 49 % | 0.64 |
+| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.77 | 54 % | 0.54 |
+| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.80 | 64 % | 0.85 |
+| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 0.94 | 0.70 | 49 % | 0.89 |
+| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.78 | 62 % | 0.82 |
+| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.75 | 59 % | 0.84 |
+| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.75 | 57 % | 0.80 |
+| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.85 | 76 % | 0.81 |
+| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.84 | 70 % | 0.63 |
+| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.78 | 61 % | 0.57 |
+| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 0.78 | 61 % | 0.53 |
+| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.73 | 57 % | 0.52 |
+| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.89 | 79 % | 0.88 |
+| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.81 | 63 % | 0.85 |
+| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.84 | 67 % | 0.79 |
+| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.82 | 69 % | 0.91 |
+| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.83 | 66 % | 0.86 |
+| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.76 | 63 % | 0.86 |
+
+Identical matched groups, pooled: cumulative 58 %, overlapping 66 % (before: 65 %, 1.8 %).
+
+![cross table example](figures/crosstab_example_S20_vs_S39.png)
+
+### Joint search
+
+| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
+|---|---|---|---|---|---|---|---|
+| cumulative | 10–20 | (0.40, 0.25) | 17 / 17 | 0.91 | 1.00 | 0.99 | 23 % / 30 % |
+| cumulative | 10–29 | (0.75, 0.65) | 22 / 22 | 0.87 | 1.00 | 0.94 | 45 % / 51 % |
+| cumulative | 10–39 | (0.50, 0.10) | 17 / 16 | 0.83 | 1.00 | 0.97 | 26 % / 25 % |
+| cumulative | 10–48 | (0.40, 0.35) | 17 / 15 | 0.76 | 1.00 | 0.94 | 23 % / 41 % |
+| cumulative | 20–29 | (0.55, 0.60) | 20 / 21 | 0.78 | 1.00 | 0.76 | 38 % / 52 % |
+| cumulative | 20–39 | (0.50, 0.40) | 23 / 22 | 0.81 | 1.00 | 0.95 | 38 % / 33 % |
+| cumulative | 20–48 | (0.25, 0.35) | 17 / 15 | 0.85 | 1.00 | 0.95 | 30 % / 41 % |
+| cumulative | 29–39 | (0.60, 0.55) | 21 / 20 | 0.78 | 1.00 | 0.79 | 52 % / 40 % |
+| cumulative | 29–48 | (0.35, 0.35) | 19 / 15 | 0.69 | 1.00 | 0.78 | 45 % / 41 % |
+| cumulative | 39–48 | (0.45, 0.50) | 18 / 16 | 0.87 | 1.00 | 0.97 | 32 % / 44 % |
+| overlap | 10–20 | (0.70, 0.80) | 12 / 11 | 0.72 | 1.00 | 0.94 | 90 % / 83 % |
+| overlap | 10–29 | (0.30, 0.30) | 23 / 23 | 0.71 | 0.80 | 0.83 | 51 % / 23 % |
+| overlap | 10–39 | (0.65, 0.75) | 16 / 17 | 0.65 | 0.67 | 0.89 | 86 % / 72 % |
+| overlap | 10–48 | (0.40, 0.30) | 25 / 26 | 0.63 | 0.67 | 0.77 | 61 % / 30 % |
+| overlap | 20–29 | (0.70, 0.65) | 17 / 17 | 0.80 | 1.00 | 0.85 | 76 % / 64 % |
+| overlap | 20–39 | (0.55, 0.60) | 59 / 54 | 0.81 | 1.00 | 0.95 | 56 % / 61 % |
+| overlap | 20–48 | (0.55, 0.55) | 24 / 23 | 0.78 | 1.00 | 0.95 | 56 % / 52 % |
+| overlap | 29–39 | (0.60, 0.60) | 18 / 18 | 0.83 | 1.00 | 0.96 | 58 % / 61 % |
+| overlap | 29–48 | (0.45, 0.45) | 26 / 26 | 0.73 | 1.00 | 0.92 | 43 % / 43 % |
+| overlap | 39–48 | (0.35, 0.25) | 27 / 27 | 0.76 | 1.00 | 0.87 | 34 % / 28 % |
+
+### One threshold for all snapshot counts
 
 | $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
 |---|---|---|---|---|
-| 0.10 | 0.77 (0.71) | 0.89 | 0.57 (0.49) | 0.74 |
-| 0.20 | 0.77 (0.71) | 0.89 | 0.57 (0.49) | 0.74 |
-| 0.30 | 0.81 (0.73) | 0.90 | 0.61 (0.54) | 0.77 |
-| 0.35 | 0.79 (0.73) | 0.92 | 0.68 (0.62) | 0.83 |
-| 0.40 | 0.79 (0.72) | 0.92 | 0.64 (0.56) | 0.83 |
-| 0.50 | 0.80 (0.74) | 0.92 | 0.66 (0.53) | 0.91 |
-| 0.55 | 0.75 (0.69) | 0.85 | 0.68 (0.53) | 0.94 |
-| 0.60 | 0.72 (0.61) | 0.82 | 0.68 (0.50) | 0.91 |
-| 0.70 | 0.69 (0.64) | 0.83 | 0.55 (0.42) | 0.80 |
+| 0.10 | 0.75 (0.59) | 0.88 | 0.56 (0.43) | 0.79 |
+| 0.20 | 0.75 (0.59) | 0.88 | 0.57 (0.46) | 0.79 |
+| 0.30 | 0.76 (0.59) | 0.88 | 0.59 (0.49) | 0.81 |
+| 0.35 | 0.79 (0.69) | 0.89 | 0.62 (0.48) | 0.85 |
+| 0.40 | 0.78 (0.65) | 0.90 | 0.66 (0.52) | 0.88 |
+| 0.45 | 0.75 (0.60) | 0.89 | 0.69 (0.56) | 0.89 |
+| 0.50 | 0.77 (0.64) | 0.90 | 0.67 (0.55) | 0.87 |
+| 0.55 | 0.74 (0.64) | 0.86 | 0.69 (0.55) | 0.92 |
+| 0.60 | 0.71 (0.63) | 0.82 | 0.65 (0.43) | 0.91 |
+| 0.70 | 0.67 (0.57) | 0.83 | 0.56 (0.42) | 0.86 |
 
-### Cumulative, θ = 0.30
+Cumulative, θ = 0.35:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | single-snapshot groups | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 28 / 36 | 43 % / 39 % | 16 / 16 | 1.00 | 0.88 | 0.98 |
-| (1, 3) | 10 / 29 | 10 | 28 / 47 | 43 % / 36 % | 16 / 16 | 1.00 | 0.83 | 0.82 |
-| (1, 4) | 10 / 39 | 10 | 28 / 47 | 43 % / 38 % | 16 / 18 | 1.00 | 0.74 | 0.94 |
-| (1, 5) | 10 / 48 | 10 | 28 / 47 | 43 % / 23 % | 16 / 16 | 1.00 | 0.85 | 0.96 |
-| (2, 3) | 20 / 29 | 10 | 36 / 47 | 39 % / 36 % | 16 / 16 | 0.92 | 0.80 | 0.81 |
-| (2, 4) | 20 / 39 | 20 | 36 / 47 | 39 % / 38 % | 22 / 23 | 1.00 | 0.83 | 0.97 |
-| (2, 5) | 20 / 48 | 10 | 36 / 47 | 39 % / 23 % | 16 / 16 | 1.00 | 0.82 | 0.98 |
-| (3, 4) | 29 / 39 | 10 | 47 / 47 | 36 % / 38 % | 16 / 18 | 1.00 | 0.73 | 0.79 |
-| (3, 5) | 29 / 48 | 10 | 47 / 47 | 36 % / 23 % | 16 / 16 | 1.00 | 0.79 | 0.80 |
-| (4, 5) | 39 / 48 | 10 | 47 / 47 | 38 % / 23 % | 18 / 16 | 1.00 | 0.78 | 0.94 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
+|---|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.91 | 0.98 |
+| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.75 | 0.80 |
+| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.81 | 0.95 |
+| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.76 | 0.94 |
+| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.77 | 0.81 |
+| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 0.97 | 0.80 | 0.96 |
+| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.85 | 0.95 |
+| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.73 | 0.77 |
+| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.69 | 0.78 |
+| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.86 | 0.92 |
 
-### Overlapping (sliding) windows, θ = 0.35
+Overlapping, θ = 0.55:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | single-snapshot groups | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 62 / 73 | 58 % / 37 % | 26 / 26 | 1.00 | 0.82 | 0.89 |
-| (1, 3) | 10 / 29 | 10 | 62 / 85 | 58 % / 34 % | 26 / 27 | 1.00 | 0.74 | 0.83 |
-| (1, 4) | 10 / 39 | 10 | 62 / 107 | 58 % / 40 % | 26 / 26 | 0.80 | 0.73 | 0.88 |
-| (1, 5) | 10 / 48 | 10 | 62 / 104 | 58 % / 34 % | 26 / 29 | 0.79 | 0.64 | 0.81 |
-| (2, 3) | 20 / 29 | 10 | 73 / 85 | 37 % / 34 % | 26 / 27 | 0.89 | 0.68 | 0.81 |
-| (2, 4) | 20 / 39 | 20 | 73 / 107 | 37 % / 40 % | 46 / 51 | 0.80 | 0.65 | 0.79 |
-| (2, 5) | 20 / 48 | 10 | 73 / 104 | 37 % / 34 % | 26 / 29 | 0.92 | 0.65 | 0.81 |
-| (3, 4) | 29 / 39 | 10 | 85 / 107 | 34 % / 40 % | 27 / 26 | 0.71 | 0.62 | 0.81 |
-| (3, 5) | 29 / 48 | 10 | 85 / 104 | 34 % / 34 % | 27 / 29 | 0.75 | 0.67 | 0.86 |
-| (4, 5) | 39 / 48 | 10 | 107 / 104 | 40 % / 34 % | 26 / 29 | 0.69 | 0.63 | 0.81 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
+|---|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 94 / 134 | 22 / 24 | 0.88 | 0.65 | 0.90 |
+| (1, 3) | 10 / 29 | 10 | 94 / 166 | 22 / 23 | 0.71 | 0.56 | 0.89 |
+| (1, 4) | 10 / 39 | 10 | 94 / 195 | 22 / 23 | 0.88 | 0.62 | 0.90 |
+| (1, 5) | 10 / 48 | 10 | 94 / 215 | 22 / 23 | 0.69 | 0.55 | 0.86 |
+| (2, 3) | 20 / 29 | 10 | 134 / 166 | 24 / 23 | 1.00 | 0.72 | 0.94 |
+| (2, 4) | 20 / 39 | 20 | 134 / 195 | 59 / 56 | 1.00 | 0.80 | 0.96 |
+| (2, 5) | 20 / 48 | 10 | 134 / 215 | 24 / 23 | 1.00 | 0.78 | 0.95 |
+| (3, 4) | 29 / 39 | 10 | 166 / 195 | 23 / 23 | 1.00 | 0.80 | 0.94 |
+| (3, 5) | 29 / 48 | 10 | 166 / 215 | 23 / 23 | 1.00 | 0.71 | 0.96 |
+| (4, 5) | 39 / 48 | 10 | 195 / 215 | 23 / 23 | 1.00 | 0.73 | 0.94 |
 
 ### Observations
 
-- Overlapping windows become robust: score 0.62–0.82 (before: 0.31–0.45 with the best
-  threshold pair per comparison), median matched Jaccard 0.69–1.00, ARI 0.79–0.89.
-- Cumulative stays robust with one θ: score 0.74–0.88, median matched Jaccard 0.92–1.00,
-  ARI 0.79–0.98; flat over θ = 0.10–0.50.
-- Agreement decreases slightly as the resolutions differ more (overlap k = 1 vs 2: 0.82,
-  k = 1 vs 5: 0.64); the number of groups still grows with S at fixed θ (62 → 104–107)
-  through short-lived groups between the common time points.
-- Interval can only be run at one resolution with a fixed W (k = 1), since its window
-  width equals its stride.
-- The earlier non-robustness of interval and overlap is a sensitivity to the window
+- Overlapping becomes robust: median matched Jaccard 1.00 at θ* for every pair (before
+  0.22–0.40), identical matched groups 57–79 % (before 0–5 %), joint-search score
+  0.63–0.83 (before 0.31–0.45).
+- Cumulative stays robust (median 0.80–1.00 at θ*, joint score 0.69–0.91).
+- One θ for all S is almost as good as the best threshold pair per comparison
+  (cumulative θ = 0.35: mean score 0.79; overlapping θ = 0.55: 0.69).
+- Agreement is lowest between S = 10 and the finest resolutions; the extra groups at
+  fine resolution are short-lived groups between the common time points.
+- The earlier non-robustness of interval and overlap was a sensitivity to the window
   width, not to the number of snapshots.
 
 ## Decisions
@@ -471,8 +550,15 @@ Choices made by the author during the analysis.
   settings (weighted, resolution 1, min. community size 3); static communities compared
   per snapshot.
 - Fixed window width: W = 50 days for every snapshot count, stride Δ = W/k with
-  k = 1…5 (S = 10, 20, 29, 39, 48); cumulative [0, t] and sliding [t − W, t] on the same
-  grid of window ends; interval = the k = 1 sliding run (not run separately).
-- Fixed window width: one Jaccard threshold θ for all snapshot counts (no θ*
-  calibration), chosen per approach by the highest mean score over all pairs
-  (cumulative θ = 0.30, overlapping θ = 0.35).
+  k = 1…5 (S = 10, 20, 29, 39, 48), the same grid of window ends for all approaches;
+  interval only for k = 1 (one line, identical to overlapping k = 1).
+- Fixed window width: the window ends are anchored at the end of the period
+  (t = 526 − jΔ), so every configuration shares the last snapshot [476, 526] and the
+  common time points 76, 126, …, 526 are exact.
+- Fixed window width: reference number of groups N* = 70 (cumulative) and 110
+  (overlapping) as before; interval 110 (200 is not reached by the single line).
+- Fixed window width: in addition to θ*, one Jaccard threshold θ for all snapshot
+  counts, chosen per approach by the highest mean score over all pairs (cumulative
+  θ = 0.35, overlapping θ = 0.55).
+- The fixed-window analysis is kept on its own branch; main keeps the snapshot-count
+  windows (window width depending on S).

@@ -202,6 +202,35 @@ def make_windows(
 
 
 # Select the temporal edges that fall inside one snapshot window.
+def make_fixed_windows(
+    approach: str,
+    cutoff_days: int,
+    window_days: int,
+    stride_divisor: int,
+) -> list[SnapshotWindow]:
+    """Windows of a fixed width W ending every W / stride_divisor days.
+
+    The window ends are anchored at the cutoff, t = cutoff - j * W / k for t >= W,
+    so every stride shares the last snapshot and the ends cutoff - m * W are common
+    to all strides. A cumulative window ending at t is [0, t], an interval or overlap
+    window is [t - W, t]. Interval windows do not overlap, so they only exist for k = 1.
+    """
+    if approach == "interval" and stride_divisor != 1:
+        raise ValueError("Interval windows require stride_divisor 1 (stride = window width).")
+    window_ts = window_days * SECONDS_PER_DAY
+    if stride_divisor < 1 or window_ts % stride_divisor:
+        raise ValueError("stride_divisor must be a positive divisor of the window width in seconds.")
+    stride_ts = window_ts // stride_divisor
+    cutoff_ts = cutoff_days * SECONDS_PER_DAY
+    ends = sorted(cutoff_ts - j * stride_ts for j in range((cutoff_ts - window_ts) // stride_ts + 1))
+    windows = []
+    for index, end_ts in enumerate(ends):
+        start_ts = 0 if approach == "cumulative" else end_ts - window_ts
+        windows.append(SnapshotWindow(
+            index, f"days_{start_ts / SECONDS_PER_DAY:.2f}_{end_ts / SECONDS_PER_DAY:.2f}", start_ts, end_ts))
+    return windows
+
+
 def edges_for_window(edges: pd.DataFrame, window: SnapshotWindow) -> pd.DataFrame:
     return edges.loc[(edges["ts"] >= window.start_ts) & (edges["ts"] < window.end_ts)]
 
@@ -316,8 +345,10 @@ def run_approach(
     resolution: float,
     min_community_size: int,
     match_threshold: float,
+    windows: list[SnapshotWindow] | None = None,
 ) -> None:
-    windows = make_windows(approach, cutoff_days, snapshot_days, num_snapshots, overlap_fraction)
+    if windows is None:
+        windows = make_windows(approach, cutoff_days, snapshot_days, num_snapshots, overlap_fraction)
     snapshots: list[list[CommunityRecord]] = []
     stats_rows = []
 
