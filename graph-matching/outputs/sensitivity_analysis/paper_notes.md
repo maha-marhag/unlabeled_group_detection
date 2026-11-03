@@ -523,6 +523,167 @@ one snapshot only (shown to confirm that the optimum still contains tracked grou
   approaches are not: their dynamic groups depend on the snapshot resolution for every
   threshold in $[0.10, 0.90]$.
 
+## Robustness to the number of snapshots at a fixed window width
+
+### Motivation
+
+In the previous experiment the number of snapshots $S$ also set the window width
+($W = 526/S$ days for interval windows, $W = 1052/(S+1)$ days for overlapping windows).
+At a common time point the two configurations therefore detected communities on
+different graphs, and the comparison mixed two effects: the temporal resolution
+(how often the network is observed) and the aggregation scale (how much interaction
+one snapshot contains). Only the cumulative approach, whose graph at $t$ is always
+$[0, t]$, was free of the second effect, and only the cumulative approach was robust.
+This experiment separates the two effects by fixing the window width and varying only
+the temporal resolution.
+
+### Hypothesis
+
+For a fixed window width $W$ and a fixed Jaccard threshold $\theta$, the number of
+snapshots does not affect the dynamic groups.
+
+### Configuration
+
+The window width is fixed to $W = 50$ days and the stride is $\Delta_k = W/k$,
+$k = 1, \dots, 5$. The window ends are
+
+$$t_j^{(k)} = W + j\,\Delta_k, \qquad j = 0, 1, \dots, \qquad t_j^{(k)} \le 526,$$
+
+and the window ending at $t$ is $[0, t]$ (cumulative) or $[t - W, t]$ (sliding,
+overlapping by $1 - 1/k$). For $k = 1$ consecutive sliding windows do not overlap, so
+this configuration is also the interval approach with 50-day windows; the interval
+approach is therefore the $k = 1$ member of the sliding family and is not treated
+separately.
+
+| $k$ | stride $\Delta$ (days) | window ends $t$ (days) | $S$ |
+|---|---|---|---|
+| 1 | 50 | 50, 100, …, 500 | 10 |
+| 2 | 25 | 50, 75, …, 525 | 20 |
+| 3 | 16.7 | 50, 66.7, …, 516.7 | 29 |
+| 4 | 12.5 | 50, 62.5, …, 525 | 39 |
+| 5 | 10 | 50, 60, …, 520 | 48 |
+
+Properties of this configuration:
+
+- Every window has the same width, so the snapshot graph at a time point $t$ is the
+  same for every $k$.
+- The common time points are exact: $T_{ij} = T_{S_i} \cap T_{S_j}$ contains at least
+  the multiples of $W$ ($t = 50, 100, \dots, 500$, i.e. 10 points), and 20 points for
+  $(k_i, k_j) = (2, 4)$. No pairing of nearest window ends is needed.
+- The same threshold $\theta$ is used for both configurations of a comparison, so the
+  rule that links communities over time is the same for all $S$.
+
+### Evaluation
+
+The dynamic groups of $(k_i, \theta)$ and $(k_j, \theta)$ are compared exactly as in the
+joint search: only groups present at two or more common time points are compared, the
+cross table holds the mean Jaccard $\bar{J}(D, D')$ over the common time points at which
+at least one of the two groups exists, groups are matched one-to-one by linear sum
+assignment, and
+
+$$\text{score}_{ij}(\theta) = \frac{\sum_k \mathbf{M}^{(ij)}_{k\pi^*(k)}}{\max(n_i, n_j)}.$$
+
+$\theta$ is varied over $0.10, 0.15, \dots, 0.90$; a value is eligible for a pair if both
+configurations have at least 10 compared groups. A single threshold for all snapshot
+counts is chosen per approach as the value with the highest mean score over the 10
+pairs $(k_i, k_j)$.
+
+### Results
+
+Mean (minimum) score and mean ARI over the 10 pairs, per threshold (– : not eligible
+for every pair):
+
+| $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
+|---|---|---|---|---|
+| 0.10 | 0.77 (0.71) | 0.89 | 0.57 (0.49) | 0.74 |
+| 0.20 | 0.77 (0.71) | 0.89 | 0.57 (0.49) | 0.74 |
+| 0.30 | 0.81 (0.73) | 0.90 | 0.61 (0.54) | 0.77 |
+| 0.35 | 0.79 (0.73) | 0.92 | 0.68 (0.62) | 0.83 |
+| 0.40 | 0.79 (0.72) | 0.92 | 0.64 (0.56) | 0.83 |
+| 0.50 | 0.80 (0.74) | 0.92 | 0.66 (0.53) | 0.91 |
+| 0.55 | 0.75 (0.69) | 0.85 | 0.68 (0.53) | 0.94 |
+| 0.60 | 0.72 (0.61) | 0.82 | 0.68 (0.50) | 0.91 |
+| 0.70 | 0.69 (0.64) | 0.83 | 0.55 (0.42) | 0.80 |
+
+The highest mean score is reached at $\theta = 0.30$ for the cumulative approach (0.81,
+with 0.80 at $\theta = 0.50$) and at $\theta = 0.35$ for overlapping windows (0.68, minimum
+0.62).
+
+Cumulative, $\theta = 0.30$:
+
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | single-snapshot groups | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
+|---|---|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 28 / 36 | 43 % / 39 % | 16 / 16 | 1.00 | 0.88 | 0.98 |
+| (1, 3) | 10 / 29 | 10 | 28 / 47 | 43 % / 36 % | 16 / 16 | 1.00 | 0.83 | 0.82 |
+| (1, 4) | 10 / 39 | 10 | 28 / 47 | 43 % / 38 % | 16 / 18 | 1.00 | 0.74 | 0.94 |
+| (1, 5) | 10 / 48 | 10 | 28 / 47 | 43 % / 23 % | 16 / 16 | 1.00 | 0.85 | 0.96 |
+| (2, 3) | 20 / 29 | 10 | 36 / 47 | 39 % / 36 % | 16 / 16 | 0.92 | 0.80 | 0.81 |
+| (2, 4) | 20 / 39 | 20 | 36 / 47 | 39 % / 38 % | 22 / 23 | 1.00 | 0.83 | 0.97 |
+| (2, 5) | 20 / 48 | 10 | 36 / 47 | 39 % / 23 % | 16 / 16 | 1.00 | 0.82 | 0.98 |
+| (3, 4) | 29 / 39 | 10 | 47 / 47 | 36 % / 38 % | 16 / 18 | 1.00 | 0.73 | 0.79 |
+| (3, 5) | 29 / 48 | 10 | 47 / 47 | 36 % / 23 % | 16 / 16 | 1.00 | 0.79 | 0.80 |
+| (4, 5) | 39 / 48 | 10 | 47 / 47 | 38 % / 23 % | 18 / 16 | 1.00 | 0.78 | 0.94 |
+
+Overlapping (sliding) windows, $\theta = 0.35$ ($k = 1$ is the interval approach):
+
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | single-snapshot groups | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
+|---|---|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 62 / 73 | 58 % / 37 % | 26 / 26 | 1.00 | 0.82 | 0.89 |
+| (1, 3) | 10 / 29 | 10 | 62 / 85 | 58 % / 34 % | 26 / 27 | 1.00 | 0.74 | 0.83 |
+| (1, 4) | 10 / 39 | 10 | 62 / 107 | 58 % / 40 % | 26 / 26 | 0.80 | 0.73 | 0.88 |
+| (1, 5) | 10 / 48 | 10 | 62 / 104 | 58 % / 34 % | 26 / 29 | 0.79 | 0.64 | 0.81 |
+| (2, 3) | 20 / 29 | 10 | 73 / 85 | 37 % / 34 % | 26 / 27 | 0.89 | 0.68 | 0.81 |
+| (2, 4) | 20 / 39 | 20 | 73 / 107 | 37 % / 40 % | 46 / 51 | 0.80 | 0.65 | 0.79 |
+| (2, 5) | 20 / 48 | 10 | 73 / 104 | 37 % / 34 % | 26 / 29 | 0.92 | 0.65 | 0.81 |
+| (3, 4) | 29 / 39 | 10 | 85 / 107 | 34 % / 40 % | 27 / 26 | 0.71 | 0.62 | 0.81 |
+| (3, 5) | 29 / 48 | 10 | 85 / 104 | 34 % / 34 % | 27 / 29 | 0.75 | 0.67 | 0.86 |
+| (4, 5) | 39 / 48 | 10 | 107 / 104 | 40 % / 34 % | 26 / 29 | 0.69 | 0.63 | 0.81 |
+
+Comparison with the previous configuration (window width depending on $S$, best
+thresholds per pair):
+
+| approach | window width depends on $S$: best score | fixed $W$, one $\theta$: score | fixed $W$, one $\theta$: median $\mathcal{J}_{ij}$ | fixed $W$, one $\theta$: ARI |
+|---|---|---|---|---|
+| cumulative | 0.76–0.94 | 0.74–0.88 | 0.92–1.00 | 0.79–0.98 |
+| interval | 0.31–0.57 | (= overlapping, $k = 1$) | | |
+| overlapping | 0.31–0.45 | 0.62–0.82 | 0.69–1.00 | 0.79–0.89 |
+
+### Analysis
+
+- **Fixing the window width makes overlapping windows robust to the number of
+  snapshots.** With a single threshold for all five resolutions, the score rises from
+  0.31–0.45 (best threshold pair per comparison, window width depending on $S$) to
+  0.62–0.82, the median matched Jaccard from 0.31–0.55 to 0.69–1.00 and the ARI from
+  0.46–0.65 to 0.79–0.89. Most matched groups are identical on the common time points.
+- **The window width, not the number of snapshots, caused the earlier failure.** Once
+  the graph at a time point no longer depends on $S$, the remaining differences come
+  only from how communities are linked between the time points, and these differences
+  are small. This confirms the explanation given for the previous experiment.
+- **Cumulative remains robust with one threshold.** The scores (0.74–0.88) are close to
+  the best scores of the joint search (0.76–0.94), which used a different pair of
+  thresholds for every comparison. The cumulative approach is insensitive to $\theta$ over
+  a wide range (mean score 0.77–0.81 for $\theta = 0.10$–$0.50$).
+- **A single threshold works for all resolutions.** No calibration of $\theta$ per
+  snapshot count is needed once $W$ is fixed; for overlapping windows the mean score is
+  stable around 0.64–0.68 for $\theta = 0.35$–$0.60$, with the lowest pair scores at the
+  largest differences in resolution ($k = 1$ vs 5: 0.64).
+- **Agreement decreases slightly with the difference in resolution.** For overlapping
+  windows the pairs with $k_i = 1$ score 0.82 against $k = 2$ and 0.64 against $k = 5$:
+  between two common time points a finer resolution observes more intermediate windows,
+  at which a group can split or end. The total number of groups therefore still grows
+  with $S$ at a fixed $\theta$ (62 for $S = 10$, 104–107 for $S = 39$–$48$); the additional
+  groups are mostly short-lived groups between the common time points.
+- **Caveats.** Only groups present at two or more common time points are compared (26–51
+  of 62–107 groups for overlapping windows, 16–23 for cumulative). The interval approach
+  can only be tested at one resolution, because its window width equals its stride:
+  for interval windows the number of snapshots is the aggregation scale, and its effect
+  is the sensitivity to the window width, not to the temporal resolution.
+- **Conclusion.** With a fixed window width and a single Jaccard threshold, the
+  hypothesis holds for both the cumulative and the sliding-window construction: the
+  number of snapshots changes the temporal resolution but not the dynamic groups that
+  are observed at the common time points. The sensitivity found in the previous
+  experiment is a sensitivity to the window width.
+
 ## Robustness to the community detection algorithm
 
 ### Question
