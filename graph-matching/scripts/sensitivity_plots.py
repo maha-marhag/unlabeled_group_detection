@@ -197,7 +197,10 @@ def time_pairs(times_i: list[float], times_j: list[float], approach: str
 
 def crosstab(chronicles_i: dict, chronicles_j: dict, pairs: list[tuple[float, float]],
              min_points: int = 1) -> tuple[np.ndarray, list[str], list[str]]:
-    """Mean Jaccard over the common time points at which at least one group exists.
+    """Mean Jaccard over the common time points at which the two groups overlap (J_t > 0).
+
+    Time points with J_t = 0 (one group missing or no shared member) are left out of the
+    sum and of the count; a pair that never overlaps gets 0.
 
     Groups that exist at fewer than ``min_points`` common time points are dropped.
     """
@@ -207,16 +210,18 @@ def crosstab(chronicles_i: dict, chronicles_j: dict, pairs: list[tuple[float, fl
         return np.zeros((len(rows), len(cols))), rows, cols
     present_i = np.array([[t in chronicles_i[g] for t, _ in pairs] for g in rows])
     present_j = np.array([[t in chronicles_j[g] for _, t in pairs] for g in cols])
-    both = present_i.astype(int) @ present_j.T.astype(int)
-    active = present_i.sum(1)[:, None] + present_j.sum(1)[None, :] - both
     total = np.zeros((len(rows), len(cols)))
+    overlapping = np.zeros((len(rows), len(cols)))
     for p, (t_i, t_j) in enumerate(pairs):
         alive_i = [(k, chronicles_i[rows[k]][t_i]) for k in np.flatnonzero(present_i[:, p])]
         alive_j = [(l, chronicles_j[cols[l]][t_j]) for l in np.flatnonzero(present_j[:, p])]
         for k, left in alive_i:
             for l, right in alive_j:
-                total[k, l] += len(left & right) / len(left | right)
-    return total / active, rows, cols
+                shared = len(left & right)
+                if shared:
+                    total[k, l] += shared / len(left | right)
+                    overlapping[k, l] += 1
+    return np.divide(total, overlapping, out=np.zeros_like(total), where=overlapping > 0), rows, cols
 
 
 def adjusted_rand_index(chronicles_i: dict, chronicles_j: dict,

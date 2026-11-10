@@ -325,7 +325,8 @@ snapshot by snapshot (no dynamic groups, no threshold).
 | overlap | depends on S | 2 % | 23 % |
 | overlap | 50 days | 66 % | 88 % |
 
-Matched pairs at θ*, pooled over all pairs of snapshot counts.
+Matched pairs at θ*, pooled over all pairs of snapshot counts; both rows use the earlier
+mean Jaccard (time points where only one group exists count as 0).
 
 ![window width summary](figures/window_width_summary.png)
 
@@ -374,28 +375,35 @@ N* = 70 (cumulative, 5/5 lines), 110 (overlapping, 5/5 lines), 110 (interval, 1 
 
 | approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
 |---|---|---|---|---|---|---|---|---|
-| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.77 | 58 % | 0.68 |
-| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 0.79 | 54 % | 0.71 |
-| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 0.80 | 0.74 | 49 % | 0.64 |
-| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.77 | 54 % | 0.54 |
-| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.80 | 64 % | 0.85 |
-| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 0.94 | 0.70 | 49 % | 0.89 |
-| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.78 | 62 % | 0.82 |
-| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.75 | 59 % | 0.84 |
-| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.75 | 57 % | 0.80 |
-| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.85 | 76 % | 0.81 |
-| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.84 | 70 % | 0.63 |
-| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.78 | 61 % | 0.57 |
-| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 0.78 | 61 % | 0.53 |
-| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.73 | 57 % | 0.52 |
-| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.89 | 79 % | 0.88 |
-| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.81 | 63 % | 0.85 |
-| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.84 | 67 % | 0.79 |
-| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.82 | 69 % | 0.91 |
-| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.83 | 66 % | 0.86 |
-| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.76 | 63 % | 0.86 |
+| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.94 | 94 % | 0.68 |
+| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 1.00 | 100 % | 0.71 |
+| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 1.00 | 0.97 | 97 % | 0.64 |
+| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.97 | 97 % | 0.54 |
+| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.92 | 92 % | 0.85 |
+| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 1.00 | 0.85 | 85 % | 0.89 |
+| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.92 | 92 % | 0.82 |
+| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.87 | 87 % | 0.84 |
+| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.86 | 86 % | 0.80 |
+| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.97 | 97 % | 0.81 |
+| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.99 | 99 % | 0.63 |
+| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.96 | 96 % | 0.57 |
+| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 1.00 | 100 % | 0.53 |
+| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.97 | 97 % | 0.52 |
+| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.96 | 96 % | 0.88 |
+| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.94 | 94 % | 0.85 |
+| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.95 | 96 % | 0.79 |
+| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.94 | 94 % | 0.91 |
+| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.95 | 96 % | 0.86 |
+| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.88 | 88 % | 0.86 |
 
-Identical matched groups, pooled: cumulative 58 %, overlapping 66 % (before: 65 %, 1.8 %).
+Mean Jaccard J̄ of two groups: mean over the common time points with J > 0 only (time
+points where one group is missing or the two share no member are dropped from the sum
+and the count; J̄ = 0 if there is none).
+
+Identical matched groups (J̄ ≥ 0.99), pooled: cumulative 92 % (380 / 411), overlapping
+96 % (693 / 725). All other matched pairs have J̄ = 0 (31 and 32 pairs): no value lies
+between 0 and 0.99, because the windows at a common time point are the same in both
+configurations and so are the communities.
 
 ![cross table example](figures/crosstab_example_S20_vs_S39.png)
 
@@ -407,56 +415,57 @@ sides; θ chosen by the highest mean score over the 10 pairs.
 
 | $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
 |---|---|---|---|---|
-| 0.10 | 0.75 (0.59) | 0.88 | 0.56 (0.43) | 0.79 |
-| 0.20 | 0.75 (0.59) | 0.88 | 0.57 (0.46) | 0.79 |
-| 0.30 | 0.76 (0.59) | 0.88 | 0.59 (0.49) | 0.81 |
-| 0.35 | 0.79 (0.69) | 0.89 | 0.62 (0.48) | 0.85 |
-| 0.40 | 0.78 (0.65) | 0.90 | 0.66 (0.52) | 0.88 |
-| 0.45 | 0.75 (0.60) | 0.89 | 0.69 (0.56) | 0.89 |
-| 0.50 | 0.77 (0.64) | 0.90 | 0.67 (0.55) | 0.87 |
-| 0.55 | 0.74 (0.64) | 0.86 | 0.69 (0.55) | 0.92 |
-| 0.60 | 0.71 (0.63) | 0.82 | 0.65 (0.43) | 0.91 |
-| 0.70 | 0.67 (0.57) | 0.83 | 0.56 (0.42) | 0.86 |
+| 0.10 | 0.84 (0.78) | 0.88 | 0.78 (0.68) | 0.79 |
+| 0.20 | 0.84 (0.78) | 0.88 | 0.80 (0.71) | 0.79 |
+| 0.30 | 0.83 (0.72) | 0.88 | 0.80 (0.71) | 0.81 |
+| 0.35 | 0.86 (0.79) | 0.89 | 0.79 (0.69) | 0.85 |
+| 0.40 | 0.84 (0.75) | 0.90 | 0.82 (0.70) | 0.88 |
+| 0.45 | 0.83 (0.71) | 0.89 | 0.81 (0.73) | 0.89 |
+| 0.50 | 0.84 (0.75) | 0.90 | 0.79 (0.69) | 0.87 |
+| 0.55 | 0.82 (0.73) | 0.86 | 0.79 (0.70) | 0.92 |
+| 0.60 | 0.82 (0.75) | 0.82 | 0.77 (0.62) | 0.91 |
+| 0.70 | 0.80 (0.70) | 0.83 | 0.67 (0.50) | 0.86 |
 
 Cumulative, θ = 0.35:
 
 | $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
 |---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.91 | 0.98 |
-| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.75 | 0.80 |
-| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.81 | 0.95 |
-| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.76 | 0.94 |
-| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.77 | 0.81 |
-| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 0.97 | 0.80 | 0.96 |
-| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.85 | 0.95 |
-| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.73 | 0.77 |
-| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.69 | 0.78 |
-| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.86 | 0.92 |
+| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.94 | 0.98 |
+| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.84 | 0.80 |
+| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.88 | 0.95 |
+| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.82 | 0.94 |
+| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.84 | 0.81 |
+| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 1.00 | 0.87 | 0.96 |
+| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.88 | 0.95 |
+| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.84 | 0.77 |
+| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.79 | 0.78 |
+| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.88 | 0.92 |
 
-Overlapping, θ = 0.55:
+Overlapping, θ = 0.40:
 
 | $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
 |---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 94 / 134 | 22 / 24 | 0.88 | 0.65 | 0.90 |
-| (1, 3) | 10 / 29 | 10 | 94 / 166 | 22 / 23 | 0.71 | 0.56 | 0.89 |
-| (1, 4) | 10 / 39 | 10 | 94 / 195 | 22 / 23 | 0.88 | 0.62 | 0.90 |
-| (1, 5) | 10 / 48 | 10 | 94 / 215 | 22 / 23 | 0.69 | 0.55 | 0.86 |
-| (2, 3) | 20 / 29 | 10 | 134 / 166 | 24 / 23 | 1.00 | 0.72 | 0.94 |
-| (2, 4) | 20 / 39 | 20 | 134 / 195 | 59 / 56 | 1.00 | 0.80 | 0.96 |
-| (2, 5) | 20 / 48 | 10 | 134 / 215 | 24 / 23 | 1.00 | 0.78 | 0.95 |
-| (3, 4) | 29 / 39 | 10 | 166 / 195 | 23 / 23 | 1.00 | 0.80 | 0.94 |
-| (3, 5) | 29 / 48 | 10 | 166 / 215 | 23 / 23 | 1.00 | 0.71 | 0.96 |
-| (4, 5) | 39 / 48 | 10 | 195 / 215 | 23 / 23 | 1.00 | 0.73 | 0.94 |
+| (1, 2) | 10 / 20 | 10 | 64 / 85 | 25 / 29 | 1.00 | 0.83 | 0.90 |
+| (1, 3) | 10 / 29 | 10 | 64 / 100 | 25 / 27 | 1.00 | 0.81 | 0.88 |
+| (1, 4) | 10 / 39 | 10 | 64 / 109 | 25 / 30 | 1.00 | 0.70 | 0.85 |
+| (1, 5) | 10 / 48 | 10 | 64 / 123 | 25 / 26 | 1.00 | 0.85 | 0.80 |
+| (2, 3) | 20 / 29 | 10 | 85 / 100 | 29 / 27 | 1.00 | 0.86 | 0.92 |
+| (2, 4) | 20 / 39 | 20 | 85 / 109 | 54 / 47 | 1.00 | 0.83 | 0.92 |
+| (2, 5) | 20 / 48 | 10 | 85 / 123 | 29 / 26 | 1.00 | 0.79 | 0.86 |
+| (3, 4) | 29 / 39 | 10 | 100 / 109 | 27 / 30 | 1.00 | 0.83 | 0.91 |
+| (3, 5) | 29 / 48 | 10 | 100 / 123 | 27 / 26 | 1.00 | 0.85 | 0.87 |
+| (4, 5) | 39 / 48 | 10 | 109 / 123 | 30 / 26 | 1.00 | 0.83 | 0.87 |
 
 ### Observations
 
-- Overlapping becomes robust: median matched Jaccard 1.00 at θ* for every pair (before
-  0.22–0.40), identical matched groups 57–79 % (before 0–5 %).
-- Cumulative stays robust (median 0.80–1.00 at θ*, identical matched groups 49–76 %).
-- One θ for all S works (cumulative θ = 0.35: mean score 0.79; overlapping θ = 0.55:
-  0.69).
-- Agreement is lowest between S = 10 and the finest resolutions; the extra groups at
-  fine resolution are short-lived groups between the common time points.
+- Overlapping is robust: median matched Jaccard 1.00 at θ* for every pair, identical
+  matched groups 88–100 %.
+- Cumulative stays robust (median 1.00 at θ*, identical matched groups 85–100 %).
+- Matched groups are either identical or do not overlap (J̄ ∈ {0, 1}); disagreement
+  comes only from groups without an identical counterpart.
+- One θ for all S works (cumulative θ = 0.35: mean score 0.86; overlapping θ = 0.40:
+  0.82); with J̄ ∈ {0, 1} the score is the share of groups of the larger set with an
+  identical counterpart.
 - The earlier non-robustness of interval and overlap was a sensitivity to the window
   width, not to the number of snapshots.
 
@@ -480,7 +489,11 @@ Choices made by the author during the analysis.
   other configuration (window ends, not window centres, for consistency with
   cumulative and interval).
 - Community comparison across snapshot counts, missing time points: a common time
-  point at which only one of the two groups exists counts as Jaccard 0 in the mean.
+  point at which only one of the two groups exists counts as Jaccard 0 in the mean
+  (snapshot-count windows on main).
+- Fixed window width, mean Jaccard of two groups: time points with J = 0 (one group
+  missing or no shared member) are removed from the sum and from the count; J̄ = 0 if
+  the two groups never overlap.
 - Presentation: the group lifespans are shown as bars (groups observed in one snapshot
   only vs groups living ≥ 100 days), not as a lifespan/size scatter.
 - Presentation: the cross tables are reported as tables (CSV files and excerpts above),
@@ -509,6 +522,6 @@ Choices made by the author during the analysis.
   (overlapping) as before; interval 110 (200 is not reached by the single line).
 - Fixed window width: in addition to θ*, one Jaccard threshold θ for all snapshot
   counts, chosen per approach by the highest mean score over all pairs (cumulative
-  θ = 0.35, overlapping θ = 0.55).
+  θ = 0.35, overlapping θ = 0.40).
 - The fixed-window analysis is kept on its own branch; main keeps the snapshot-count
   windows (window width depending on S).
