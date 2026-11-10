@@ -10,7 +10,7 @@ The same Jaccard threshold theta is used for both runs of a comparison; theta is
 over SEARCH_THRESHOLDS. The dynamic groups present at MIN_COMMON_POINTS or more common
 time points are compared with the cross table of ``sensitivity_plots.py`` (mean Jaccard),
 matched by linear sum assignment and scored by score = matched Jaccard sum / max(n_i, n_j),
-so an unmatched group counts as 0; ARI as in ``sensitivity_plots.py``.
+so an unmatched group counts as 0.
 
 Outputs (``outputs/sensitivity_analysis/fixed_window``):
 
@@ -30,7 +30,7 @@ from scipy.optimize import linear_sum_assignment
 
 from config_sensitivity import STRIDE_DIVISORS
 from graph_matching import find_project_root
-from sensitivity_plots import adjusted_rand_index, crosstab, dynamic_groups, time_pairs
+from sensitivity_plots import crosstab, dynamic_groups, time_pairs
 
 APPROACHES = ["cumulative", "overlap"]
 # Only groups with a history (seen at >= 2 common time points) are compared.
@@ -46,15 +46,13 @@ def agreement(chron_i: dict, chron_j: dict, pairs: list[tuple[float, float]]) ->
     table, rows, cols = crosstab(chron_i, chron_j, pairs, MIN_COMMON_POINTS)
     if not rows or not cols:
         return {"compared_i": len(rows), "compared_j": len(cols), "mean_matched_jaccard": 0.0,
-                "median_matched_jaccard": 0.0, "score": 0.0,
-                "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
+                "median_matched_jaccard": 0.0, "score": 0.0}
     r, c = linear_sum_assignment(table, maximize=True)
     values = table[r, c]
     return {"compared_i": len(rows), "compared_j": len(cols),
             "mean_matched_jaccard": float(values.mean()),
             "median_matched_jaccard": float(np.median(values)),
-            "score": float(values.sum() / max(len(rows), len(cols))),
-            "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
+            "score": float(values.sum() / max(len(rows), len(cols)))}
 
 
 def sweep(runs: Path) -> pd.DataFrame:
@@ -107,7 +105,7 @@ def main() -> None:
     pairs_per_approach = search.groupby("approach")[["k_i", "k_j"]].apply(lambda f: len(f.drop_duplicates()))
     by_theta = eligible.groupby(["approach", "theta"]).agg(
         eligible_pairs=("score", "size"), mean_score=("score", "mean"), min_score=("score", "min"),
-        mean_median_jaccard=("median_matched_jaccard", "mean"), mean_ari=("ari", "mean")).reset_index()
+        mean_median_jaccard=("median_matched_jaccard", "mean")).reset_index()
     by_theta["all_pairs_eligible"] = by_theta["eligible_pairs"] == by_theta["approach"].map(pairs_per_approach)
     by_theta.round(3).to_csv(args.output / "theta_summary.csv", index=False)
     print(best.to_string(index=False))

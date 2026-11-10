@@ -122,44 +122,44 @@ count the same number of dynamic groups $N^*$. For each pair of configurations
 $(S_i, \theta^*_{S_i})$ and $(S_j, \theta^*_{S_j})$ the table reports how well the
 resulting communities agree: the median and mean similarity of the one-to-one matched
 groups ($\mathcal{J}_{ij}$), the share of matched groups whose chronicles are
-identical on the common time points ($\bar{J} \ge 0.99$) and the ARI.
+identical on the common time points ($\bar{J} \ge 0.99$).
 
 **cumulative** (reference level $N^* = 70$ groups): $\theta^*_{10} = 0.867$, $\theta^*_{20} = 0.753$, $\theta^*_{30} = 0.564$, $\theta^*_{40} = 0.523$, $\theta^*_{50} = 0.433$
 
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (10, 0.867) | (20, 0.753) | 1.00 | 0.81 | 59 % | 0.67 |
-| (10, 0.867) | (30, 0.564) | 1.00 | 0.83 | 63 % | 0.68 |
-| (10, 0.867) | (40, 0.523) | 1.00 | 0.82 | 58 % | 0.67 |
-| (10, 0.867) | (50, 0.433) | 1.00 | 0.86 | 65 % | 0.60 |
-| (20, 0.753) | (30, 0.564) | 1.00 | 0.82 | 70 % | 0.76 |
-| (20, 0.753) | (40, 0.523) | 1.00 | 0.78 | 57 % | 0.88 |
-| (20, 0.753) | (50, 0.433) | 1.00 | 0.83 | 65 % | 0.91 |
-| (30, 0.564) | (40, 0.523) | 1.00 | 0.86 | 68 % | 0.81 |
-| (30, 0.564) | (50, 0.433) | 1.00 | 0.90 | 76 % | 0.76 |
-| (40, 0.523) | (50, 0.433) | 1.00 | 0.89 | 76 % | 0.90 |
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups |
+|---|---|---|---|---|
+| (10, 0.867) | (20, 0.753) | 1.00 | 0.81 | 59 % |
+| (10, 0.867) | (30, 0.564) | 1.00 | 0.83 | 63 % |
+| (10, 0.867) | (40, 0.523) | 1.00 | 0.82 | 58 % |
+| (10, 0.867) | (50, 0.433) | 1.00 | 0.86 | 65 % |
+| (20, 0.753) | (30, 0.564) | 1.00 | 0.82 | 70 % |
+| (20, 0.753) | (40, 0.523) | 1.00 | 0.78 | 57 % |
+| (20, 0.753) | (50, 0.433) | 1.00 | 0.83 | 65 % |
+| (30, 0.564) | (40, 0.523) | 1.00 | 0.86 | 68 % |
+| (30, 0.564) | (50, 0.433) | 1.00 | 0.90 | 76 % |
+| (40, 0.523) | (50, 0.433) | 1.00 | 0.89 | 76 % |
 
 **interval** (reference level $N^* = 200$ groups): $\theta^*_{20} = 0.517$, $\theta^*_{30} = 0.321$, $\theta^*_{40} = 0.221$, $\theta^*_{50} = 0.106$
 
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (20, 0.517) | (30, 0.321) | 0.53 | 0.52 | 1 % | 0.51 |
-| (20, 0.517) | (40, 0.221) | 0.35 | 0.37 | 5 % | 0.44 |
-| (20, 0.517) | (50, 0.106) | 0.33 | 0.34 | 0 % | 0.49 |
-| (30, 0.321) | (40, 0.221) | 0.44 | 0.47 | 4 % | 0.57 |
-| (30, 0.321) | (50, 0.106) | 0.37 | 0.35 | 2 % | 0.52 |
-| (40, 0.221) | (50, 0.106) | 0.46 | 0.46 | 8 % | 0.54 |
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups |
+|---|---|---|---|---|
+| (20, 0.517) | (30, 0.321) | 0.53 | 0.52 | 1 % |
+| (20, 0.517) | (40, 0.221) | 0.35 | 0.37 | 5 % |
+| (20, 0.517) | (50, 0.106) | 0.33 | 0.34 | 0 % |
+| (30, 0.321) | (40, 0.221) | 0.44 | 0.47 | 4 % |
+| (30, 0.321) | (50, 0.106) | 0.37 | 0.35 | 2 % |
+| (40, 0.221) | (50, 0.106) | 0.46 | 0.46 | 8 % |
 
 **overlap** (reference level $N^* = 110$ groups): $\theta^*_{10} = 0.793$, $\theta^*_{20} = 0.463$, $\theta^*_{30} = 0.316$, $\theta^*_{40} = 0.228$
 
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (10, 0.793) | (20, 0.463) | 0.40 | 0.39 | 1 % | 0.41 |
-| (10, 0.793) | (30, 0.316) | 0.30 | 0.32 | 1 % | 0.27 |
-| (10, 0.793) | (40, 0.228) | 0.23 | 0.25 | 0 % | 0.28 |
-| (20, 0.463) | (30, 0.316) | 0.28 | 0.32 | 1 % | 0.51 |
-| (20, 0.463) | (40, 0.228) | 0.22 | 0.27 | 1 % | 0.52 |
-| (30, 0.316) | (40, 0.228) | 0.33 | 0.35 | 5 % | 0.58 |
+| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups |
+|---|---|---|---|---|
+| (10, 0.793) | (20, 0.463) | 0.40 | 0.39 | 1 % |
+| (10, 0.793) | (30, 0.316) | 0.30 | 0.32 | 1 % |
+| (10, 0.793) | (40, 0.228) | 0.23 | 0.25 | 0 % |
+| (20, 0.463) | (30, 0.316) | 0.28 | 0.32 | 1 % |
+| (20, 0.463) | (40, 0.228) | 0.22 | 0.27 | 1 % |
+| (30, 0.316) | (40, 0.228) | 0.33 | 0.35 | 5 % |
 
 ### Example of each approach
 
@@ -231,30 +231,30 @@ diagonal, in bold, is the matched value; empty cells have Jaccard 0):
 | D83 |  |  |  |  |  |  |
 
 
-| approach | $S_i$–$S_j$ | $\lvert T_{S_i} \rvert$ / $\lvert T_{S_j} \rvert$ | $\lvert T_{ij} \rvert$ | $\lvert \mathbb{D}_{S_i} \rvert$ / $\lvert \mathbb{D}_{S_j} \rvert$ | chronicles compared | mean chronicle length on $T_{ij}$ | size of $\mathbf{M}^{(ij)}$ | matched pairs | mean $\mathcal{J}_{ij}$ | median $\mathcal{J}_{ij}$ | ARI |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | 10 / 20 | 10 | 66 / 71 | 66 / 46 | 2.0 / 2.9 | 66 × 46 | 46 | 0.814 | 1.000 | 0.674 |
-| cumulative | 10–30 | 10 / 30 | 10 | 66 / 72 | 66 / 43 | 2.0 / 3.1 | 66 × 43 | 43 | 0.835 | 1.000 | 0.679 |
-| cumulative | 10–40 | 10 / 40 | 10 | 66 / 70 | 66 / 38 | 2.0 / 3.5 | 66 × 38 | 38 | 0.821 | 1.000 | 0.673 |
-| cumulative | 10–50 | 10 / 50 | 10 | 66 / 70 | 66 / 34 | 2.0 / 3.9 | 66 × 34 | 34 | 0.858 | 1.000 | 0.602 |
-| cumulative | 20–30 | 20 / 30 | 10 | 71 / 72 | 46 / 43 | 2.9 / 3.1 | 46 × 43 | 43 | 0.824 | 1.000 | 0.758 |
-| cumulative | 20–40 | 20 / 40 | 20 | 71 / 70 | 71 / 53 | 3.8 / 5.0 | 71 × 53 | 53 | 0.782 | 1.000 | 0.877 |
-| cumulative | 20–50 | 20 / 50 | 10 | 71 / 70 | 46 / 34 | 2.9 / 3.9 | 46 × 34 | 34 | 0.831 | 1.000 | 0.905 |
-| cumulative | 30–40 | 30 / 40 | 10 | 72 / 70 | 43 / 38 | 3.1 / 3.5 | 43 × 38 | 38 | 0.857 | 1.000 | 0.807 |
-| cumulative | 30–50 | 30 / 50 | 10 | 72 / 70 | 43 / 34 | 3.1 / 3.9 | 43 × 34 | 34 | 0.895 | 1.000 | 0.759 |
-| cumulative | 40–50 | 40 / 50 | 10 | 70 / 70 | 38 / 34 | 3.5 / 3.9 | 38 × 34 | 34 | 0.891 | 1.000 | 0.903 |
-| interval | 20–30 | 20 / 30 | 10 | 205 / 199 | 117 / 93 | 1.2 / 1.5 | 117 × 93 | 93 | 0.521 | 0.526 | 0.508 |
-| interval | 20–40 | 20 / 40 | 20 | 205 / 196 | 205 / 138 | 1.5 / 2.2 | 205 × 138 | 138 | 0.373 | 0.351 | 0.444 |
-| interval | 20–50 | 20 / 50 | 10 | 205 / 199 | 117 / 90 | 1.2 / 1.7 | 117 × 90 | 90 | 0.337 | 0.329 | 0.491 |
-| interval | 30–40 | 30 / 40 | 10 | 199 / 196 | 93 / 89 | 1.5 / 1.6 | 93 × 89 | 89 | 0.470 | 0.444 | 0.574 |
-| interval | 30–50 | 30 / 50 | 10 | 199 / 199 | 93 / 90 | 1.5 / 1.7 | 93 × 90 | 90 | 0.352 | 0.370 | 0.522 |
-| interval | 40–50 | 40 / 50 | 10 | 196 / 199 | 89 / 90 | 1.6 / 1.7 | 89 × 90 | 89 | 0.459 | 0.455 | 0.544 |
-| overlap | 10–20 | 10 / 20 | 10 | 110 / 112 | 110 / 83 | 1.3 / 1.7 | 110 × 83 | 83 | 0.390 | 0.395 | 0.411 |
-| overlap | 10–30 | 10 / 30 | 10 | 110 / 109 | 110 / 69 | 1.3 / 2.2 | 110 × 69 | 69 | 0.322 | 0.299 | 0.269 |
-| overlap | 10–40 | 10 / 40 | 10 | 110 / 109 | 110 / 65 | 1.3 / 2.3 | 110 × 65 | 65 | 0.247 | 0.227 | 0.275 |
-| overlap | 20–30 | 20 / 30 | 20 | 112 / 109 | 112 / 94 | 2.6 / 3.2 | 112 × 94 | 94 | 0.324 | 0.278 | 0.509 |
-| overlap | 20–40 | 20 / 40 | 20 | 112 / 109 | 112 / 81 | 2.6 / 3.6 | 112 × 81 | 81 | 0.267 | 0.220 | 0.520 |
-| overlap | 30–40 | 30 / 40 | 30 | 109 / 109 | 109 / 100 | 4.2 / 4.4 | 109 × 100 | 100 | 0.353 | 0.327 | 0.578 |
+| approach | $S_i$–$S_j$ | $\lvert T_{S_i} \rvert$ / $\lvert T_{S_j} \rvert$ | $\lvert T_{ij} \rvert$ | $\lvert \mathbb{D}_{S_i} \rvert$ / $\lvert \mathbb{D}_{S_j} \rvert$ | chronicles compared | mean chronicle length on $T_{ij}$ | size of $\mathbf{M}^{(ij)}$ | matched pairs | mean $\mathcal{J}_{ij}$ | median $\mathcal{J}_{ij}$ |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cumulative | 10–20 | 10 / 20 | 10 | 66 / 71 | 66 / 46 | 2.0 / 2.9 | 66 × 46 | 46 | 0.814 | 1.000 |
+| cumulative | 10–30 | 10 / 30 | 10 | 66 / 72 | 66 / 43 | 2.0 / 3.1 | 66 × 43 | 43 | 0.835 | 1.000 |
+| cumulative | 10–40 | 10 / 40 | 10 | 66 / 70 | 66 / 38 | 2.0 / 3.5 | 66 × 38 | 38 | 0.821 | 1.000 |
+| cumulative | 10–50 | 10 / 50 | 10 | 66 / 70 | 66 / 34 | 2.0 / 3.9 | 66 × 34 | 34 | 0.858 | 1.000 |
+| cumulative | 20–30 | 20 / 30 | 10 | 71 / 72 | 46 / 43 | 2.9 / 3.1 | 46 × 43 | 43 | 0.824 | 1.000 |
+| cumulative | 20–40 | 20 / 40 | 20 | 71 / 70 | 71 / 53 | 3.8 / 5.0 | 71 × 53 | 53 | 0.782 | 1.000 |
+| cumulative | 20–50 | 20 / 50 | 10 | 71 / 70 | 46 / 34 | 2.9 / 3.9 | 46 × 34 | 34 | 0.831 | 1.000 |
+| cumulative | 30–40 | 30 / 40 | 10 | 72 / 70 | 43 / 38 | 3.1 / 3.5 | 43 × 38 | 38 | 0.857 | 1.000 |
+| cumulative | 30–50 | 30 / 50 | 10 | 72 / 70 | 43 / 34 | 3.1 / 3.9 | 43 × 34 | 34 | 0.895 | 1.000 |
+| cumulative | 40–50 | 40 / 50 | 10 | 70 / 70 | 38 / 34 | 3.5 / 3.9 | 38 × 34 | 34 | 0.891 | 1.000 |
+| interval | 20–30 | 20 / 30 | 10 | 205 / 199 | 117 / 93 | 1.2 / 1.5 | 117 × 93 | 93 | 0.521 | 0.526 |
+| interval | 20–40 | 20 / 40 | 20 | 205 / 196 | 205 / 138 | 1.5 / 2.2 | 205 × 138 | 138 | 0.373 | 0.351 |
+| interval | 20–50 | 20 / 50 | 10 | 205 / 199 | 117 / 90 | 1.2 / 1.7 | 117 × 90 | 90 | 0.337 | 0.329 |
+| interval | 30–40 | 30 / 40 | 10 | 199 / 196 | 93 / 89 | 1.5 / 1.6 | 93 × 89 | 89 | 0.470 | 0.444 |
+| interval | 30–50 | 30 / 50 | 10 | 199 / 199 | 93 / 90 | 1.5 / 1.7 | 93 × 90 | 90 | 0.352 | 0.370 |
+| interval | 40–50 | 40 / 50 | 10 | 196 / 199 | 89 / 90 | 1.6 / 1.7 | 89 × 90 | 89 | 0.459 | 0.455 |
+| overlap | 10–20 | 10 / 20 | 10 | 110 / 112 | 110 / 83 | 1.3 / 1.7 | 110 × 83 | 83 | 0.390 | 0.395 |
+| overlap | 10–30 | 10 / 30 | 10 | 110 / 109 | 110 / 69 | 1.3 / 2.2 | 110 × 69 | 69 | 0.322 | 0.299 |
+| overlap | 10–40 | 10 / 40 | 10 | 110 / 109 | 110 / 65 | 1.3 / 2.3 | 110 × 65 | 65 | 0.247 | 0.227 |
+| overlap | 20–30 | 20 / 30 | 20 | 112 / 109 | 112 / 94 | 2.6 / 3.2 | 112 × 94 | 94 | 0.324 | 0.278 |
+| overlap | 20–40 | 20 / 40 | 20 | 112 / 109 | 112 / 81 | 2.6 / 3.6 | 112 × 81 | 81 | 0.267 | 0.220 |
+| overlap | 30–40 | 30 / 40 | 30 | 109 / 109 | 109 / 100 | 4.2 / 4.4 | 109 × 100 | 100 | 0.353 | 0.327 |
 
 - $|T_{S_i}|$, $|T_{S_j}|$: number of time points (snapshots) of each configuration.
 - $|T_{ij}|$: number of common time points (for overlapping windows, paired nearest window ends).
@@ -267,14 +267,14 @@ diagonal, in bold, is the matched value; empty cells have Jaccard 0):
 
 ### Observations
 
-- Cumulative: median matched similarity 1.0 for every pair, clean 1:1 diagonal,
-  ARI 0.60 to 0.91 (lowest with S = 10). 65 % of the matched pairs are identical on
+- Cumulative: median matched similarity 1.0 for every pair, clean 1:1 diagonal.
+  65 % of the matched pairs are identical on
   the common time points.
 - Cumulative snapshots at a common time point are the same graph [0, t], and Louvain
   (seed 42) returns identical communities there (checked for S = 10 vs 50 at all 10
   time points), so the disagreement comes only from how communities are chained.
-- Interval: median 0.33 to 0.53, ARI 0.44 to 0.57, 3.6 % identical pairs.
-- Overlap: median 0.22 to 0.40, ARI 0.27 to 0.58, 1.8 % identical pairs; pairs with
+- Interval: median 0.33 to 0.53, 3.6 % identical pairs.
+- Overlap: median 0.22 to 0.40, 1.8 % identical pairs; pairs with
   S = 10 agree least.
 - Many groups exist only between common time points and are excluded (up to 36 of
   70 for cumulative S = 50 vs 10, up to 109 of 199 for interval).
@@ -373,28 +373,28 @@ N* = 70 (cumulative, 5/5 lines), 110 (overlapping, 5/5 lines), 110 (interval, 1 
 
 ### Comparison at θ*
 
-| approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|---|---|---|
-| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.94 | 94 % | 0.68 |
-| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 1.00 | 100 % | 0.71 |
-| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 1.00 | 0.97 | 97 % | 0.64 |
-| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.97 | 97 % | 0.54 |
-| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.92 | 92 % | 0.85 |
-| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 1.00 | 0.85 | 85 % | 0.89 |
-| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.92 | 92 % | 0.82 |
-| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.87 | 87 % | 0.84 |
-| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.86 | 86 % | 0.80 |
-| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.97 | 97 % | 0.81 |
-| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.99 | 99 % | 0.63 |
-| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.96 | 96 % | 0.57 |
-| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 1.00 | 100 % | 0.53 |
-| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.97 | 97 % | 0.52 |
-| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.96 | 96 % | 0.88 |
-| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.94 | 94 % | 0.85 |
-| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.95 | 96 % | 0.79 |
-| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.94 | 94 % | 0.91 |
-| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.95 | 96 % | 0.86 |
-| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.88 | 88 % | 0.86 |
+| approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups |
+|---|---|---|---|---|---|---|---|
+| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.94 | 94 % |
+| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 1.00 | 100 % |
+| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 1.00 | 0.97 | 97 % |
+| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.97 | 97 % |
+| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.92 | 92 % |
+| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 1.00 | 0.85 | 85 % |
+| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.92 | 92 % |
+| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.87 | 87 % |
+| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.86 | 86 % |
+| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.97 | 97 % |
+| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.99 | 99 % |
+| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.96 | 96 % |
+| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 1.00 | 100 % |
+| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.97 | 97 % |
+| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.96 | 96 % |
+| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.94 | 94 % |
+| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.95 | 96 % |
+| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.94 | 94 % |
+| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.95 | 96 % |
+| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.88 | 88 % |
 
 Mean Jaccard J̄ of two groups: mean over the common time points with J > 0 only (time
 points where one group is missing or the two share no member are dropped from the sum
@@ -413,67 +413,98 @@ Same θ for both configurations of a pair; only groups present at ≥ 2 common t
 score = sum of matched mean Jaccard / max(n_i, n_j); at least 10 compared groups on both
 sides; θ chosen by the highest mean score over the 10 pairs.
 
-| $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
-|---|---|---|---|---|
-| 0.10 | 0.84 (0.78) | 0.88 | 0.78 (0.68) | 0.79 |
-| 0.20 | 0.84 (0.78) | 0.88 | 0.80 (0.71) | 0.79 |
-| 0.30 | 0.83 (0.72) | 0.88 | 0.80 (0.71) | 0.81 |
-| 0.35 | 0.86 (0.79) | 0.89 | 0.79 (0.69) | 0.85 |
-| 0.40 | 0.84 (0.75) | 0.90 | 0.82 (0.70) | 0.88 |
-| 0.45 | 0.83 (0.71) | 0.89 | 0.81 (0.73) | 0.89 |
-| 0.50 | 0.84 (0.75) | 0.90 | 0.79 (0.69) | 0.87 |
-| 0.55 | 0.82 (0.73) | 0.86 | 0.79 (0.70) | 0.92 |
-| 0.60 | 0.82 (0.75) | 0.82 | 0.77 (0.62) | 0.91 |
-| 0.70 | 0.80 (0.70) | 0.83 | 0.67 (0.50) | 0.86 |
+| $\theta$ | cumulative: mean score (min) | overlapping: mean score (min) |
+|---|---|---|
+| 0.10 | 0.84 (0.78) | 0.78 (0.68) |
+| 0.20 | 0.84 (0.78) | 0.80 (0.71) |
+| 0.30 | 0.83 (0.72) | 0.80 (0.71) |
+| 0.35 | 0.86 (0.79) | 0.79 (0.69) |
+| 0.40 | 0.84 (0.75) | 0.82 (0.70) |
+| 0.45 | 0.83 (0.71) | 0.81 (0.73) |
+| 0.50 | 0.84 (0.75) | 0.79 (0.69) |
+| 0.55 | 0.82 (0.73) | 0.79 (0.70) |
+| 0.60 | 0.82 (0.75) | 0.77 (0.62) |
+| 0.70 | 0.80 (0.70) | 0.67 (0.50) |
 
 Cumulative, θ = 0.35:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.94 | 0.98 |
-| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.84 | 0.80 |
-| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.88 | 0.95 |
-| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.82 | 0.94 |
-| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.84 | 0.81 |
-| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 1.00 | 0.87 | 0.96 |
-| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.88 | 0.95 |
-| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.84 | 0.77 |
-| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.79 | 0.78 |
-| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.88 | 0.92 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score |
+|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.94 |
+| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.84 |
+| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.88 |
+| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.82 |
+| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.84 |
+| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 1.00 | 0.87 |
+| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.88 |
+| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.84 |
+| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.79 |
+| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.88 |
 
 Overlapping, θ = 0.40:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 64 / 85 | 25 / 29 | 1.00 | 0.83 | 0.90 |
-| (1, 3) | 10 / 29 | 10 | 64 / 100 | 25 / 27 | 1.00 | 0.81 | 0.88 |
-| (1, 4) | 10 / 39 | 10 | 64 / 109 | 25 / 30 | 1.00 | 0.70 | 0.85 |
-| (1, 5) | 10 / 48 | 10 | 64 / 123 | 25 / 26 | 1.00 | 0.85 | 0.80 |
-| (2, 3) | 20 / 29 | 10 | 85 / 100 | 29 / 27 | 1.00 | 0.86 | 0.92 |
-| (2, 4) | 20 / 39 | 20 | 85 / 109 | 54 / 47 | 1.00 | 0.83 | 0.92 |
-| (2, 5) | 20 / 48 | 10 | 85 / 123 | 29 / 26 | 1.00 | 0.79 | 0.86 |
-| (3, 4) | 29 / 39 | 10 | 100 / 109 | 27 / 30 | 1.00 | 0.83 | 0.91 |
-| (3, 5) | 29 / 48 | 10 | 100 / 123 | 27 / 26 | 1.00 | 0.85 | 0.87 |
-| (4, 5) | 39 / 48 | 10 | 109 / 123 | 30 / 26 | 1.00 | 0.83 | 0.87 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score |
+|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 64 / 85 | 25 / 29 | 1.00 | 0.83 |
+| (1, 3) | 10 / 29 | 10 | 64 / 100 | 25 / 27 | 1.00 | 0.81 |
+| (1, 4) | 10 / 39 | 10 | 64 / 109 | 25 / 30 | 1.00 | 0.70 |
+| (1, 5) | 10 / 48 | 10 | 64 / 123 | 25 / 26 | 1.00 | 0.85 |
+| (2, 3) | 20 / 29 | 10 | 85 / 100 | 29 / 27 | 1.00 | 0.86 |
+| (2, 4) | 20 / 39 | 20 | 85 / 109 | 54 / 47 | 1.00 | 0.83 |
+| (2, 5) | 20 / 48 | 10 | 85 / 123 | 29 / 26 | 1.00 | 0.79 |
+| (3, 4) | 29 / 39 | 10 | 100 / 109 | 27 / 30 | 1.00 | 0.83 |
+| (3, 5) | 29 / 48 | 10 | 100 / 123 | 27 / 26 | 1.00 | 0.85 |
+| (4, 5) | 39 / 48 | 10 | 109 / 123 | 30 / 26 | 1.00 | 0.83 |
 
-### Share of identically matched groups
+### One-to-one correspondence
 
-I = number of matched pairs with J̄ ≥ 0.99; p_min = I / min(n_i, n_j) (share of matched
-pairs), p_max = I / max(n_i, n_j) (share of the groups of the larger set; unmatched
-groups count as 0); mean over the 10 pairs. θ*: all groups at a common time point;
-θ̂: groups at ≥ 2 common time points.
+Hungarian assignment on J̄: share of assigned pairs with J̄ ≥ 0.99. Maximum alignment on
+J̄: every group picks its best partner(s), no constraint; classes: 1:1 (mutual best
+match, unique in both directions), split / merge (tie or best partner not reciprocated),
+no partner (row 0). Shares of the configuration with fewer (min) and more (max)
+compared groups, mean (min–max) over the 10 pairs. θ*: all groups at a common time
+point; θ̂: groups at ≥ 2 common time points.
 
-| approach | threshold | mean p_min (min–max) | mean p_max (min–max) |
-|---|---|---|---|
-| cumulative | θ* | 93 % (85–100 %) | 72 % (55–92 %) |
-| overlap | θ* | 96 % (88–100 %) | 76 % (59–88 %) |
-| cumulative | θ̂ = 0.35 | 95 % (88–100 %) | 86 % (79–94 %) |
-| overlap | θ̂ = 0.40 | 91 % (84–96 %) | 82 % (70–86 %) |
+Fewer compared groups:
 
-Per pair: `fixed_window/matching_percentage_pairs.csv`; summary:
-`fixed_window/matching_percentage_summary.csv`.
+| approach | threshold | Hungarian: identical pairs | 1:1 (mutual best match) | split / merge | no partner |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 93 % (85–100 %) | 58 % (49–76 %) | 42 % (24–51 %) | 0 % |
+| overlap | $\theta^*$ | 96 % (88–100 %) | 66 % (57–79 %) | 34 % (21–43 %) | 0 % |
+| cumulative | $\hat\theta = 0.35$ | 95 % (88–100 %) | 80 % (71–93 %) | 17 % (6–29 %) | 3 % (0–12 %) |
+| overlap | $\hat\theta = 0.40$ | 91 % (84–96 %) | 68 % (48–81 %) | 25 % (15–40 %) | 7 % (2–12 %) |
 
-![matching percentage](figures/matching_percentage.png)
+More compared groups:
+
+| approach | threshold | Hungarian: identical pairs | 1:1 (mutual best match) | split / merge | no partner |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 72 % (55–92 %) | 46 % (29–72 %) | 54 % (28–71 %) | 0 % |
+| overlap | $\theta^*$ | 76 % (59–88 %) | 53 % (34–71 %) | 47 % (29–66 %) | 0 % |
+| cumulative | $\hat\theta = 0.35$ | 86 % (79–94 %) | 73 % (63–88 %) | 22 % (12–37 %) | 6 % (0–13 %) |
+| overlap | $\hat\theta = 0.40$ | 82 % (70–86 %) | 61 % (40–70 %) | 31 % (17–50 %) | 8 % (3–13 %) |
+
+Summed over the 10 pairs:
+
+| approach | threshold | Hungarian pairs (identical) | mutual best matches | split / merge (smaller / larger configuration) | no partner (smaller / larger) |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 411 (380) | 237 | 174 / 311 | 0 / 0 |
+| overlap | $\theta^*$ | 725 (693) | 476 | 249 / 457 | 0 / 0 |
+| cumulative | $\hat\theta$ | 167 (158) | 133 | 29 / 40 | 5 / 11 |
+| overlap | $\hat\theta$ | 279 (255) | 190 | 70 / 97 | 19 / 24 |
+
+Per pair: `fixed_window/one_to_one_pairs.csv`; summary: `fixed_window/one_to_one_summary.csv`.
+
+![one to one](figures/one_to_one.png)
+
+![Hungarian vs maximum alignment](figures/hungarian_vs_max_alignment.png)
+
+The gap between the two bars (15–35 points) is the share of groups that the Hungarian
+assignment pairs as identical although they are split / merge.
+
+- 91–96 % of the Hungarian pairs are identical; every mutual best match is identical
+  and a Hungarian pair.
+- 1:1 for 58–80 % of the groups of the smaller configuration; the rest is almost
+  entirely split / merge (same members, cut differently in time); no partner 0–7 %.
 
 ### Observations
 
@@ -542,9 +573,14 @@ Choices made by the author during the analysis.
 - Fixed window width: in addition to θ*, one Jaccard threshold θ for all snapshot
   counts, chosen per approach by the highest mean score over all pairs (cumulative
   θ = 0.35, overlapping θ = 0.40).
-- Share of identically matched groups: both denominators reported, min(n_i, n_j)
-  (quality of the matching) and max(n_i, n_j) (coverage of all groups), as the mean
-  over the pairs of snapshot counts, at θ* and θ̂; shown as bars of the mean with a
-  min–max line.
+- The Adjusted Rand Index is not used: it compares the node–time labels of the two
+  configurations without matching groups, so it does not test a one-to-one
+  correspondence; the maximum alignment does.
+- One-to-one test with the mean Jaccard only (no lifetime coverage): Hungarian
+  assignment for the identical share, maximum alignment for the correspondence; groups
+  classified as 1:1 (unique mutual best match), split / merge (tie or best partner not
+  reciprocated) or no partner; shares of the configuration with fewer and with more
+  compared groups, mean over the pairs, at θ* and θ̂; bars of the mean with a min–max
+  line.
 - The fixed-window analysis is kept on its own branch; main keeps the snapshot-count
   windows (window width depending on S).

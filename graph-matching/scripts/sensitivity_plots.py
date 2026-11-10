@@ -24,9 +24,8 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
     ends shared by both runs; with fixed-width windows anchored at the cutoff they
     coincide exactly).
     The cross table holds the mean Jaccard of the member sets of every pair of
-    groups (0 where only one group exists; cells equal to 0 are left empty), the groups are matched one-to-one by
-    linear sum assignment, and the Adjusted Rand Index of the node-time labels
-    measures the global agreement.
+    groups over the common time points at which they overlap (cells equal to 0 are
+    left empty), and the groups are matched one-to-one by linear sum assignment.
 
 ``crosstab_example_S20_vs_S39.png``:
     one small excerpt of the cross table per approach with both snapshot counts, with the Jaccard value
@@ -224,28 +223,6 @@ def crosstab(chronicles_i: dict, chronicles_j: dict, pairs: list[tuple[float, fl
     return np.divide(total, overlapping, out=np.zeros_like(total), where=overlapping > 0), rows, cols
 
 
-def adjusted_rand_index(chronicles_i: dict, chronicles_j: dict,
-                        pairs: list[tuple[float, float]]) -> float:
-    """ARI of the group labels of the node-time elements present in both runs."""
-    counts: dict[tuple[str, str], int] = {}
-    for t_i, t_j in pairs:
-        label_i = {u: g for g, c in chronicles_i.items() if t_i in c for u in c[t_i]}
-        label_j = {u: g for g, c in chronicles_j.items() if t_j in c for u in c[t_j]}
-        for u in label_i.keys() & label_j.keys():
-            key = (label_i[u], label_j[u])
-            counts[key] = counts.get(key, 0) + 1
-    table = pd.Series(counts)
-    def comb2(x) -> float:
-        x = np.asarray(x, dtype=float)
-        return float((x * (x - 1) / 2).sum())
-
-    index = comb2(table)
-    rows = comb2(table.groupby(level=0).sum())
-    cols = comb2(table.groupby(level=1).sum())
-    expected = rows * cols / comb2([table.sum()])
-    return float((index - expected) / ((rows + cols) / 2 - expected))
-
-
 def compare_snapshot_counts(grid: pd.DataFrame, runs: Path, out_dir: Path,
                             groups_line: dict[str, int] | None) -> pd.DataFrame:
     grid = grid[grid["criterion"] == "jaccard"]
@@ -273,7 +250,6 @@ def compare_snapshot_counts(grid: pd.DataFrame, runs: Path, out_dir: Path,
                 order = np.argsort(-table[r, c])
                 r, c = r[order], c[order]
                 values = table[r, c]
-                ari = adjusted_rand_index(chron_i, chron_j, pairs)
                 for n, (k, l, v) in enumerate(zip(r, c, values), start=1):
                     matched.append({"approach": approach, "s_i": s_i, "s_j": s_j, "rank": n,
                                     "group_i": rows[k], "group_j": cols[l], "mean_jaccard": round(v, 4)})
@@ -290,8 +266,7 @@ def compare_snapshot_counts(grid: pd.DataFrame, runs: Path, out_dir: Path,
                                     [sum(t in chron_j[g] for _, t in pairs) for g in cols])), 1),
                                 "matched_pairs": len(values),
                                 "mean_matched_jaccard": round(values.mean(), 3),
-                                "median_matched_jaccard": round(float(np.median(values)), 3),
-                                "ari": round(ari, 3)})
+                                "median_matched_jaccard": round(float(np.median(values)), 3)})
                 # Matched pairs first (best first, D_k <-> D'_k), unmatched groups after them.
                 row_order = list(r) + [k for k in range(len(rows)) if k not in set(r)]
                 col_order = list(c) + [l for l in range(len(cols)) if l not in set(c)]
