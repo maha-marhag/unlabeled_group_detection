@@ -8,8 +8,9 @@ sliding windows do not overlap, so this run is also the interval approach.
 
 The same Jaccard threshold theta is used for both runs of a comparison; theta is swept
 over SEARCH_THRESHOLDS. The dynamic groups present at MIN_COMMON_POINTS or more common
-time points are compared as in ``sensitivity_plots.py`` (mean Jaccard cross table,
-linear sum assignment, score = matched Jaccard sum / max(n_i, n_j), ARI).
+time points are compared with the cross table of ``sensitivity_plots.py`` (mean Jaccard),
+matched by linear sum assignment and scored by score = matched Jaccard sum / max(n_i, n_j),
+so an unmatched group counts as 0; ARI as in ``sensitivity_plots.py``.
 
 Outputs (``outputs/sensitivity_analysis/fixed_window``):
 
@@ -25,12 +26,35 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import linear_sum_assignment
 
 from config_sensitivity import STRIDE_DIVISORS
 from graph_matching import find_project_root
-from sensitivity_plots import MIN_COMPARED_GROUPS, SEARCH_THRESHOLDS, agreement, dynamic_groups, time_pairs
+from sensitivity_plots import adjusted_rand_index, crosstab, dynamic_groups, time_pairs
 
 APPROACHES = ["cumulative", "overlap"]
+# Only groups with a history (seen at >= 2 common time points) are compared.
+MIN_COMMON_POINTS = 2
+# A threshold is only eligible if both configurations have this many such groups
+# (otherwise a single well-matched group could win).
+MIN_COMPARED_GROUPS = 10
+SEARCH_THRESHOLDS = [round(0.1 + 0.05 * i, 2) for i in range(17)]  # 0.10 ... 0.90
+
+
+def agreement(chron_i: dict, chron_j: dict, pairs: list[tuple[float, float]]) -> dict:
+    """Matched mean Jaccard of the groups with a history, with and without unmatched groups."""
+    table, rows, cols = crosstab(chron_i, chron_j, pairs, MIN_COMMON_POINTS)
+    if not rows or not cols:
+        return {"compared_i": len(rows), "compared_j": len(cols), "mean_matched_jaccard": 0.0,
+                "median_matched_jaccard": 0.0, "score": 0.0,
+                "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
+    r, c = linear_sum_assignment(table, maximize=True)
+    values = table[r, c]
+    return {"compared_i": len(rows), "compared_j": len(cols),
+            "mean_matched_jaccard": float(values.mean()),
+            "median_matched_jaccard": float(np.median(values)),
+            "score": float(values.sum() / max(len(rows), len(cols))),
+            "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
 
 
 def sweep(runs: Path) -> pd.DataFrame:

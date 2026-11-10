@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Compare the communities of two community detection algorithms at a fixed number of snapshots.
 
-For every approach (cumulative, interval, overlap) with S snapshots, the snapshot
+For every approach (cumulative, interval, overlap) the snapshot windows have a fixed
+width of WINDOW_DAYS days and end every WINDOW_DAYS / k days, anchored at the cutoff
+(``graph_matching.make_fixed_windows``): k = 2 (20 snapshots) for cumulative and
+overlap, k = 1 (10 snapshots) for interval, whose stride equals its width. The snapshot
 graphs are partitioned by Louvain (the pipeline's algorithm) and by greedy modularity
 maximisation (Clauset-Newman-Moore). At every snapshot the two community sets are
 compared in a cross table of Jaccard indices (Louvain rows, greedy columns) and
@@ -39,11 +42,11 @@ import graph_matching
 from graph_matching import SECONDS_PER_DAY, build_graph, detect_communities, edges_for_window, find_project_root
 
 APPROACHES = ["cumulative", "interval", "overlap"]
-SNAPSHOTS = 20
+# Stride divisor k per approach (interval windows do not overlap, so only k = 1).
+STRIDE_DIVISORS = {"cumulative": 2, "interval": 1, "overlap": 2}
 # Same settings as the Louvain runs of the sensitivity analysis.
 CUTOFF_DAYS = 526
-SNAPSHOT_DAYS = 50
-OVERLAP_FRACTION = 0.5
+WINDOW_DAYS = 50
 SEED = 42
 RESOLUTION = 1.0
 MIN_COMMUNITY_SIZE = 3
@@ -61,12 +64,7 @@ def greedy_communities(graph, resolution: float, min_size: int) -> list[frozense
 
 
 def windows_for(approach: str):
-    # The 20-snapshot overlap run is the baseline construction (50-day windows, 25-day stride).
-    count = None if approach == "overlap" and SNAPSHOTS == 20 else SNAPSHOTS
-    windows = graph_matching.make_windows(approach, CUTOFF_DAYS, SNAPSHOT_DAYS, count, OVERLAP_FRACTION)
-    if len(windows) != SNAPSHOTS:
-        raise ValueError(f"{approach}: expected {SNAPSHOTS} windows, got {len(windows)}")
-    return windows
+    return graph_matching.make_fixed_windows(approach, CUTOFF_DAYS, WINDOW_DAYS, STRIDE_DIVISORS[approach])
 
 
 def jaccard_table(left: list[frozenset[int]], right: list[frozenset[int]]) -> np.ndarray:
@@ -169,9 +167,9 @@ def plot_examples(tables: dict, snapshots: pd.DataFrame, out: Path) -> None:
         ax.tick_params(which="minor", length=0)
         ax.set_xlabel("greedy modularity communities (size)")
         ax.set_ylabel("Louvain communities (size)")
-        ax.set_title(f"{approach}\nsnapshot {index + 1} of {SNAPSHOTS} (day {day:.0f}), "
+        ax.set_title(f"{approach}\nsnapshot {index + 1} of {len(snap)} (day {day:.0f}), "
                      f"matched ranks {first + 1}–{first + len(rows)} of {matched}", fontsize=10)
-    fig.suptitle(f"Louvain vs greedy modularity, S={SNAPSHOTS}: Jaccard per pair of communities "
+    fig.suptitle(f"Louvain vs greedy modularity, {WINDOW_DAYS}-day windows: Jaccard per pair of communities "
                  "(matched pairs on the diagonal, empty = 0)", fontsize=11)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(out, dpi=170, bbox_inches="tight")

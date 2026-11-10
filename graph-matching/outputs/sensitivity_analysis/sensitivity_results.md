@@ -279,56 +279,7 @@ diagonal, in bold, is the matched value; empty cells have Jaccard 0):
 - Many groups exist only between common time points and are excluded (up to 36 of
   70 for cumulative S = 50 vs 10, up to 109 of 199 for interval).
 - Hypothesis supported for cumulative; for interval and overlap not supported at the
-  equal-count thresholds θ*, nor at any other threshold combination (see the joint
-  search below).
-
-## Joint search for the best-matching thresholds
-
-Tables: `joint_threshold_search.csv` (every pair, every θ_i × θ_j, 17 × 17),
-`joint_threshold_search_best.csv` (best combination per pair). Methodology: section
-"Joint search for the best-matching thresholds" in `paper_notes.md`.
-
-- Both thresholds varied over 0.10 to 0.90 (step 0.05).
-- Only groups with a history are compared: groups present at ≥ 2 common time points.
-- Score = sum of matched mean Jaccard / max(n_i, n_j) (unmatched groups count as 0).
-- A combination is eligible only with ≥ 10 such groups on both sides (best scores are
-  the same for any minimum from 5 to 15).
-
-| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
-|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | (0.45, 0.35) | 18 / 17 | 0.94 | 1.00 | 0.98 | 33 % / 40 % |
-| cumulative | 10–30 | (0.70, 0.55) | 22 / 20 | 0.81 | 1.00 | 0.88 | 45 % / 41 % |
-| cumulative | 10–40 | (0.45, 0.10) | 18 / 16 | 0.80 | 1.00 | 0.98 | 33 % / 33 % |
-| cumulative | 10–50 | (0.80, 0.70) | 20 / 20 | 0.77 | 0.95 | 0.88 | 61 % / 52 % |
-| cumulative | 20–30 | (0.60, 0.65) | 23 / 23 | 0.84 | 1.00 | 0.74 | 45 % / 51 % |
-| cumulative | 20–40 | (0.35, 0.35) | 23 / 22 | 0.81 | 1.00 | 0.96 | 40 % / 31 % |
-| cumulative | 20–50 | (0.35, 0.45) | 17 / 16 | 0.76 | 1.00 | 0.96 | 40 % / 41 % |
-| cumulative | 30–40 | (0.30, 0.40) | 16 / 16 | 0.92 | 1.00 | 0.96 | 31 % / 34 % |
-| cumulative | 30–50 | (0.30, 0.10) | 16 / 16 | 0.89 | 1.00 | 0.97 | 31 % / 37 % |
-| cumulative | 40–50 | (0.40, 0.10) | 16 / 16 | 0.87 | 1.00 | 0.94 | 34 % / 37 % |
-| interval | 20–30 | (0.25, 0.25) | 26 / 25 | 0.50 | 0.56 | 0.60 | 50 % / 56 % |
-| interval | 20–40 | (0.35, 0.25) | 50 / 47 | 0.31 | 0.35 | 0.55 | 60 % / 60 % |
-| interval | 20–50 | (0.50, 0.35) | 17 / 17 | 0.38 | 0.41 | 0.54 | 75 % / 75 % |
-| interval | 30–40 | (0.45, 0.40) | 15 / 15 | 0.49 | 0.62 | 0.69 | 74 % / 76 % |
-| interval | 30–50 | (0.40, 0.35) | 17 / 17 | 0.46 | 0.56 | 0.62 | 69 % / 75 % |
-| interval | 40–50 | (0.40, 0.40) | 15 / 16 | 0.57 | 0.77 | 0.67 | 76 % / 79 % |
-| overlap | 10–20 | (0.10, 0.25) | 20 / 21 | 0.41 | 0.44 | 0.50 | 36 % / 32 % |
-| overlap | 10–30 | (0.65, 0.40) | 23 / 22 | 0.37 | 0.44 | 0.53 | 72 % / 42 % |
-| overlap | 10–40 | (0.45, 0.10) | 24 / 24 | 0.33 | 0.31 | 0.46 | 52 % / 37 % |
-| overlap | 20–30 | (0.80, 0.75) | 37 / 39 | 0.42 | 0.46 | 0.57 | 84 % / 82 % |
-| overlap | 20–40 | (0.45, 0.40) | 60 / 51 | 0.31 | 0.36 | 0.60 | 44 % / 53 % |
-| overlap | 30–40 | (0.70, 0.65) | 68 / 61 | 0.45 | 0.55 | 0.65 | 78 % / 77 % |
-
-### Observations
-
-- Cumulative: best score 0.76–0.94, median matched similarity 1.0 (0.95 for 10–50), ARI
-  0.74–0.99. Flat optimum: 22–90 of 289 combinations within 0.05 of the best, thresholds
-  from 0.10 to about 0.80.
-- Interval: best score 0.31–0.57; overlap: 0.31–0.45. No threshold combination makes
-  their dynamic groups agree.
-- An earlier version without the two restrictions picked thresholds that link almost
-  nothing (84–99 % single-snapshot groups) for interval and overlap, and once a
-  combination with a single compared group; the restrictions remove both effects.
+  equal-count thresholds θ*.
 
 ## Community detection algorithm: Louvain vs greedy modularity
 
@@ -340,22 +291,24 @@ outputs in `outputs/algorithm_comparison/`:
 empty = Jaccard 0), `figures/crosstab_example.png` (one excerpt per approach: the
 snapshot with the median mean matched Jaccard, matched ranks around the median).
 
-S = 20 for all approaches; static communities compared snapshot by snapshot (no dynamic
-groups, no threshold). Louvain reproduces the existing 20-snapshot runs exactly.
+Fixed 50-day windows anchored at the end of the period: stride 25 days (S = 20) for
+cumulative and overlap, stride 50 days (S = 10) for interval. Static communities compared
+snapshot by snapshot (no dynamic groups, no threshold).
 
-| approach | communities Louvain / greedy | matched pairs | mean $J$ | median $J$ | $J \ge 0.5$ | identical ($J \ge 0.99$) | partners per community | mean $J$ per snapshot (min–max) | mean $J$, size ≥ 20 / < 20 |
-|---|---|---|---|---|---|---|---|---|---|
-| cumulative | 267 / 269 | 258 | 0.71 | 0.79 | 78 % | 14 % | 2.68 | 0.55–0.83 | 0.69 / 0.83 |
-| interval | 301 / 300 | 287 | 0.75 | 0.83 | 83 % | 17 % | 2.53 | 0.62–0.88 | 0.72 / 0.94 |
-| overlap | 289 / 285 | 280 | 0.72 | 0.78 | 79 % | 16 % | 2.55 | 0.54–0.87 | 0.70 / 0.85 |
+| approach | snapshots | communities Louvain / greedy | matched pairs | mean $J$ | median $J$ | $J \ge 0.5$ | identical ($J \ge 0.99$) | partners per community | mean $J$ per snapshot (min–max) | mean $J$, size ≥ 20 / < 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cumulative | 20 | 263 / 265 | 254 | 0.71 | 0.80 | 76 % | 13 % | 2.61 | 0.55–0.85 | 0.69 / 0.85 |
+| interval | 10 | 146 / 144 | 139 | 0.72 | 0.78 | 79 % | 16 % | 2.53 | 0.61–0.82 | 0.71 / 0.80 |
+| overlap | 20 | 286 / 287 | 276 | 0.74 | 0.81 | 81 % | 16 % | 2.54 | 0.61–0.87 | 0.72 / 0.85 |
 
 ### Observations
 
 - Almost the same number of communities from both algorithms; nearly all matched.
-- Median matched Jaccard 0.78–0.83, 78–83 % of pairs ≥ 0.5, 14–17 % identical;
-  2.5–2.7 partners per community (boundary members assigned differently).
-- Large communities (≥ 20 members) agree less (0.69–0.72) than small ones (0.83–0.94).
-- The three approaches are affected equally (mean 0.71 / 0.75 / 0.72).
+- Median matched Jaccard 0.78–0.81, 76–81 % of pairs ≥ 0.5, 13–16 % identical;
+  2.5–2.6 partners per community (boundary members assigned differently).
+- Large communities (≥ 20 members) agree less (0.69–0.72) than small ones (0.80–0.85).
+- The three approaches are affected equally (mean 0.71 / 0.72 / 0.74).
+- Nearly unchanged from the earlier windows (median 0.78–0.83, identical 14–17 %).
 - Largely 1:1 correspondence: broadly robust to the algorithm, but boundaries of large
   communities vary.
 
@@ -363,17 +316,16 @@ groups, no threshold). Louvain reproduces the existing 20-snapshot runs exactly.
 
 ### Summary
 
-| approach | window width | identical matched groups | matched groups with J̄ ≥ 0.5 | best score: mean (range) |
-|---|---|---|---|---|
-| cumulative | depends on S | 65 % | 91 % | 0.84 (0.76–0.94) |
-| cumulative | 50 days | 58 % | 85 % | 0.82 (0.69–0.91) |
-| interval | depends on S | 4 % | 35 % | 0.45 (0.31–0.57) |
-| interval | 50 days | – (one snapshot count) | – | – |
-| overlap | depends on S | 2 % | 23 % | 0.38 (0.31–0.45) |
-| overlap | 50 days | 66 % | 88 % | 0.74 (0.63–0.83) |
+| approach | window width | identical matched groups | matched groups with J̄ ≥ 0.5 |
+|---|---|---|---|
+| cumulative | depends on S | 65 % | 91 % |
+| cumulative | 50 days | 58 % | 85 % |
+| interval | depends on S | 4 % | 35 % |
+| interval | 50 days | – (one snapshot count) | – |
+| overlap | depends on S | 2 % | 23 % |
+| overlap | 50 days | 66 % | 88 % |
 
-Percentages: matched pairs at θ*, pooled over all pairs of snapshot counts. Score: best
-score of the joint threshold search per pair of snapshot counts.
+Matched pairs at θ*, pooled over all pairs of snapshot counts.
 
 ![window width summary](figures/window_width_summary.png)
 
@@ -447,32 +399,11 @@ Identical matched groups, pooled: cumulative 58 %, overlapping 66 % (before: 65 
 
 ![cross table example](figures/crosstab_example_S20_vs_S39.png)
 
-### Joint search
-
-| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
-|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | (0.40, 0.25) | 17 / 17 | 0.91 | 1.00 | 0.99 | 23 % / 30 % |
-| cumulative | 10–29 | (0.75, 0.65) | 22 / 22 | 0.87 | 1.00 | 0.94 | 45 % / 51 % |
-| cumulative | 10–39 | (0.50, 0.10) | 17 / 16 | 0.83 | 1.00 | 0.97 | 26 % / 25 % |
-| cumulative | 10–48 | (0.40, 0.35) | 17 / 15 | 0.76 | 1.00 | 0.94 | 23 % / 41 % |
-| cumulative | 20–29 | (0.55, 0.60) | 20 / 21 | 0.78 | 1.00 | 0.76 | 38 % / 52 % |
-| cumulative | 20–39 | (0.50, 0.40) | 23 / 22 | 0.81 | 1.00 | 0.95 | 38 % / 33 % |
-| cumulative | 20–48 | (0.25, 0.35) | 17 / 15 | 0.85 | 1.00 | 0.95 | 30 % / 41 % |
-| cumulative | 29–39 | (0.60, 0.55) | 21 / 20 | 0.78 | 1.00 | 0.79 | 52 % / 40 % |
-| cumulative | 29–48 | (0.35, 0.35) | 19 / 15 | 0.69 | 1.00 | 0.78 | 45 % / 41 % |
-| cumulative | 39–48 | (0.45, 0.50) | 18 / 16 | 0.87 | 1.00 | 0.97 | 32 % / 44 % |
-| overlap | 10–20 | (0.70, 0.80) | 12 / 11 | 0.72 | 1.00 | 0.94 | 90 % / 83 % |
-| overlap | 10–29 | (0.30, 0.30) | 23 / 23 | 0.71 | 0.80 | 0.83 | 51 % / 23 % |
-| overlap | 10–39 | (0.65, 0.75) | 16 / 17 | 0.65 | 0.67 | 0.89 | 86 % / 72 % |
-| overlap | 10–48 | (0.40, 0.30) | 25 / 26 | 0.63 | 0.67 | 0.77 | 61 % / 30 % |
-| overlap | 20–29 | (0.70, 0.65) | 17 / 17 | 0.80 | 1.00 | 0.85 | 76 % / 64 % |
-| overlap | 20–39 | (0.55, 0.60) | 59 / 54 | 0.81 | 1.00 | 0.95 | 56 % / 61 % |
-| overlap | 20–48 | (0.55, 0.55) | 24 / 23 | 0.78 | 1.00 | 0.95 | 56 % / 52 % |
-| overlap | 29–39 | (0.60, 0.60) | 18 / 18 | 0.83 | 1.00 | 0.96 | 58 % / 61 % |
-| overlap | 29–48 | (0.45, 0.45) | 26 / 26 | 0.73 | 1.00 | 0.92 | 43 % / 43 % |
-| overlap | 39–48 | (0.35, 0.25) | 27 / 27 | 0.76 | 1.00 | 0.87 | 34 % / 28 % |
-
 ### One threshold for all snapshot counts
+
+Same θ for both configurations of a pair; only groups present at ≥ 2 common time points;
+score = sum of matched mean Jaccard / max(n_i, n_j); at least 10 compared groups on both
+sides; θ chosen by the highest mean score over the 10 pairs.
 
 | $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
 |---|---|---|---|---|
@@ -520,11 +451,10 @@ Overlapping, θ = 0.55:
 ### Observations
 
 - Overlapping becomes robust: median matched Jaccard 1.00 at θ* for every pair (before
-  0.22–0.40), identical matched groups 57–79 % (before 0–5 %), joint-search score
-  0.63–0.83 (before 0.31–0.45).
-- Cumulative stays robust (median 0.80–1.00 at θ*, joint score 0.69–0.91).
-- One θ for all S is almost as good as the best threshold pair per comparison
-  (cumulative θ = 0.35: mean score 0.79; overlapping θ = 0.55: 0.69).
+  0.22–0.40), identical matched groups 57–79 % (before 0–5 %).
+- Cumulative stays robust (median 0.80–1.00 at θ*, identical matched groups 49–76 %).
+- One θ for all S works (cumulative θ = 0.35: mean score 0.79; overlapping θ = 0.55:
+  0.69).
 - Agreement is lowest between S = 10 and the finest resolutions; the extra groups at
   fine resolution are short-lived groups between the common time points.
 - The earlier non-robustness of interval and overlap was a sensitivity to the window
@@ -559,13 +489,16 @@ Choices made by the author during the analysis.
 - Presentation: the cross tables are illustrated by one small annotated excerpt per
   approach (S = 20 vs S = 40, 5 groups around the median matched rank plus their
   strongest other partners), not by heatmaps of the full table or a bipartite graph.
-- Joint threshold search: both thresholds varied over 0.10–0.90; only groups present at
-  ≥ 2 common time points are compared (dynamic groups with a history); score = sum of
-  matched mean Jaccard / max(n_i, n_j); at least 10 compared groups on both sides.
+- Score for the single-threshold comparison: only groups present at ≥ 2 common time
+  points are compared (dynamic groups with a history); score = sum of matched mean
+  Jaccard / max(n_i, n_j); at least 10 compared groups on both sides.
+- The joint search over both thresholds (θ_i, θ_j) is not part of the analysis: with
+  fixed windows the equal-count thresholds θ* and a single θ for all S are sufficient.
 - Algorithm comparison: greedy modularity maximisation (networkx
-  `greedy_modularity_communities`, Clauset–Newman–Moore) vs Louvain, S = 20, same
-  settings (weighted, resolution 1, min. community size 3); static communities compared
-  per snapshot.
+  `greedy_modularity_communities`, Clauset–Newman–Moore) vs Louvain on the fixed 50-day
+  windows (S = 20 for cumulative and overlap, S = 10 for interval), same settings
+  (weighted, resolution 1, min. community size 3); static communities compared per
+  snapshot.
 - Fixed window width: W = 50 days for every snapshot count, stride Δ = W/k with
   k = 1…5 (S = 10, 20, 29, 39, 48), the same grid of window ends for all approaches;
   interval only for k = 1 (one line, identical to overlapping k = 1).

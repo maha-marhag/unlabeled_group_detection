@@ -4,12 +4,11 @@
 Reads the results of the snapshot-count windows from ``main`` and of the fixed 50-day
 windows from this branch (``outputs/sensitivity_analysis``) and reports, per approach:
 
-- the share of matched groups that are identical (mean Jaccard >= 0.99) and with mean
-  Jaccard >= 0.5, pooled over all pairs of snapshot counts at theta*;
-- the best score of the joint threshold search (mean, min, max over the pairs).
+the share of matched groups that are identical (mean Jaccard >= 0.99) and with mean
+Jaccard >= 0.5, pooled over all pairs of snapshot counts at theta*.
 
 Outputs: ``window_width_summary.csv`` and ``figures/window_width_summary.png``
-(paired bars: % identical matched groups and mean best score).
+(paired bars: % identical matched groups and % matched groups with mean Jaccard >= 0.5).
 """
 
 from __future__ import annotations
@@ -51,18 +50,13 @@ def summarise(base: Path) -> pd.DataFrame:
     rows = []
     for setup, (ref, label, _) in SETUPS.items():
         pairs = read(base, "group_matching_pairs.csv", ref)
-        joint = read(base, "joint_threshold_search_best.csv", ref)
         for approach in APPROACHES:
             values = pairs.loc[pairs["approach"] == approach, "mean_jaccard"]
-            scores = joint.loc[joint["approach"] == approach, "score"]
             if values.empty:
                 continue
             rows.append({"approach": approach, "setup": label,
                          "identical_share": round((values >= 0.99).mean(), 3),
-                         "share_at_least_0_5": round((values >= 0.5).mean(), 3),
-                         "mean_best_score": round(scores.mean(), 3),
-                         "min_best_score": round(scores.min(), 3),
-                         "max_best_score": round(scores.max(), 3)})
+                         "share_at_least_0_5": round((values >= 0.5).mean(), 3)})
     return pd.DataFrame(rows)
 
 
@@ -71,7 +65,7 @@ def plot(summary: pd.DataFrame, out: Path) -> None:
     width = 0.38
     x = np.arange(len(APPROACHES))
     for ax, column, title, scale in ((axes[0], "identical_share", "Identical matched groups (%)", 100),
-                                     (axes[1], "mean_best_score", "Best score (mean over pairs)", 1)):
+                                     (axes[1], "share_at_least_0_5", "Matched groups with mean Jaccard ≥ 0.5 (%)", 100)):
         for offset, (_, label, color) in zip((-width / 2, width / 2), SETUPS.values()):
             sub = summary[summary["setup"] == label].set_index("approach")
             heights = [sub[column].get(a, np.nan) * scale for a in APPROACHES]

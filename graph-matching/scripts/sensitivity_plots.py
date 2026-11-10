@@ -28,14 +28,6 @@ Reads ``outputs/sensitivity_analysis/number_of_groups.csv`` written by
     linear sum assignment, and the Adjusted Rand Index of the node-time labels
     measures the global agreement.
 
-``joint_threshold_search.csv``, ``joint_threshold_search_best.csv``:
-    for every pair S_i < S_j and every combination of SEARCH_THRESHOLDS for S_i
-    and S_j, the groups that exist at MIN_COMMON_POINTS or more common time
-    points are matched as above. The agreement score is the sum of the matched
-    mean Jaccard values divided by max(n_i, n_j), so a group left without a
-    partner counts as 0; the best pair of thresholds maximises the score among
-    the combinations with at least MIN_COMPARED_GROUPS such groups on both sides.
-
 ``crosstab_example_S20_vs_S39.png``:
     one small excerpt of the cross table per approach with both snapshot counts, with the Jaccard value
     written in each cell (empty where 0). Rows: EXAMPLE_ROWS consecutive groups of
@@ -71,12 +63,6 @@ COUNT_MARKERS = {10: "o", 20: "s", 29: "^", 39: "D", 48: "v"}
 # value that intercepts the most snapshot-count lines.
 GROUPS_LINE = {"cumulative": 70, "interval": 110, "overlap": 110}
 LONG_LIVED_DAYS = 100
-# Only groups with a history (seen at >= 2 common time points) enter the threshold search.
-MIN_COMMON_POINTS = 2
-# A combination is only eligible if both configurations have this many such groups
-# (otherwise a single well-matched group could win; results are the same for 5 to 15).
-MIN_COMPARED_GROUPS = 10
-SEARCH_THRESHOLDS = [round(0.1 + 0.05 * i, 2) for i in range(17)]  # 0.10 ... 0.90
 EXAMPLE_ROWS = 5
 EXAMPLE_EXTRA_COLUMNS = 3
 
@@ -317,63 +303,6 @@ def compare_snapshot_counts(grid: pd.DataFrame, runs: Path, out_dir: Path,
     return summary
 
 
-def agreement(chron_i: dict, chron_j: dict, pairs: list[tuple[float, float]]) -> dict:
-    """Matched mean Jaccard of the groups with a history, with and without unmatched groups."""
-    table, rows, cols = crosstab(chron_i, chron_j, pairs, MIN_COMMON_POINTS)
-    if not rows or not cols:
-        return {"compared_i": len(rows), "compared_j": len(cols), "mean_matched_jaccard": 0.0,
-                "median_matched_jaccard": 0.0, "score": 0.0,
-                "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
-    r, c = linear_sum_assignment(table, maximize=True)
-    values = table[r, c]
-    return {"compared_i": len(rows), "compared_j": len(cols),
-            "mean_matched_jaccard": float(values.mean()),
-            "median_matched_jaccard": float(np.median(values)),
-            "score": float(values.sum() / max(len(rows), len(cols))),
-            "ari": adjusted_rand_index(chron_i, chron_j, pairs)}
-
-
-def search_thresholds_joint(grid: pd.DataFrame, runs: Path, out_dir: Path,
-                            groups_line: dict[str, int] | None) -> pd.DataFrame:
-    grid = grid[grid["criterion"] == "jaccard"]
-    rows = []
-    for approach in APPROACHES:
-        value = (groups_line or {}).get(approach, GROUPS_LINE[approach])
-        sub = grid[grid["approach"] == approach]
-        stars = {count: theta_star(sub[sub["snapshot_count"] == count], value)
-                 for count in sorted(sub["snapshot_count"].unique())}
-        counts = [count for count, theta in stars.items() if theta is not None]
-        groups = {}
-        for count in counts:
-            path = runs / approach / f"n{count}" / "graph_matching" / approach / "communities.csv"
-            for theta in SEARCH_THRESHOLDS:
-                groups[count, theta] = dynamic_groups(path, approach, theta)
-        # Share of dynamic groups observed in a single snapshot (no tracking).
-        single_share = {key: float(np.mean([len(c) == 1 for c in chron.values()]))
-                        for key, (_, chron) in groups.items()}
-        for a, s_i in enumerate(counts):
-            for s_j in counts[a + 1:]:
-                for theta_i in SEARCH_THRESHOLDS:
-                    times_i, chron_i = groups[s_i, theta_i]
-                    for theta_j in SEARCH_THRESHOLDS:
-                        times_j, chron_j = groups[s_j, theta_j]
-                        pairs = time_pairs(times_i, times_j, approach)
-                        rows.append({"approach": approach, "s_i": s_i, "theta_i": theta_i,
-                                     "s_j": s_j, "theta_j": theta_j,
-                                     "groups_i": len(chron_i), "groups_j": len(chron_j),
-                                     "single_snapshot_share_i": single_share[s_i, theta_i],
-                                     "single_snapshot_share_j": single_share[s_j, theta_j],
-                                     **agreement(chron_i, chron_j, pairs)})
-                print(f"{approach} S={s_i} vs S={s_j} done", flush=True)
-    search = pd.DataFrame(rows).round(3)
-    search.to_csv(out_dir / "joint_threshold_search.csv", index=False)
-    eligible = search[(search["compared_i"] >= MIN_COMPARED_GROUPS)
-                      & (search["compared_j"] >= MIN_COMPARED_GROUPS)]
-    best = eligible.loc[eligible.groupby(["approach", "s_i", "s_j"], sort=False)["score"].idxmax()]
-    best.to_csv(out_dir / "joint_threshold_search_best.csv", index=False)
-    return best
-
-
 def plot_crosstab_examples(crosstabs: Path, out: Path, s_i: int, s_j: int) -> None:
     approaches = [a for a in APPROACHES if (crosstabs / f"{a}_S{s_i}_vs_S{s_j}.csv").exists()]
     fig, axes = plt.subplots(1, len(approaches), figsize=(5.4 * len(approaches), 3.9), squeeze=False)
@@ -449,8 +378,6 @@ def main() -> None:
     print(summary.to_string(index=False))
     plot_crosstab_examples(args.figures.parent / "crosstabs",
                            args.figures / "crosstab_example_S20_vs_S39.png", 20, 39)
-    joint = search_thresholds_joint(grid, args.runs, args.figures.parent, groups_line)
-    print(joint.to_string(index=False))
 
 
 if __name__ == "__main__":
