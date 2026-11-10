@@ -1,0 +1,5 @@
+approach,threshold,pairs,p_matched_mean,p_matched_min,p_matched_max,p_all_mean,p_all_min,p_all_max
+cumulative,theta*,10,0.928,0.847,1.0,0.717,0.545,0.923
+overlap,theta*,10,0.955,0.881,1.0,0.758,0.591,0.881
+cumulative,theta_hat,10,0.949,0.882,1.0,0.86,0.789,0.941
+overlap,theta_hat,10,0.91,0.84,0.962,0.82,0.7,0.862

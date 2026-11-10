@@ -456,6 +456,25 @@ Overlapping, θ = 0.40:
 | (3, 5) | 29 / 48 | 10 | 100 / 123 | 27 / 26 | 1.00 | 0.85 | 0.87 |
 | (4, 5) | 39 / 48 | 10 | 109 / 123 | 30 / 26 | 1.00 | 0.83 | 0.87 |
 
+### Share of identically matched groups
+
+I = number of matched pairs with J̄ ≥ 0.99; p_min = I / min(n_i, n_j) (share of matched
+pairs), p_max = I / max(n_i, n_j) (share of the groups of the larger set; unmatched
+groups count as 0); mean over the 10 pairs. θ*: all groups at a common time point;
+θ̂: groups at ≥ 2 common time points.
+
+| approach | threshold | mean p_min (min–max) | mean p_max (min–max) |
+|---|---|---|---|
+| cumulative | θ* | 93 % (85–100 %) | 72 % (55–92 %) |
+| overlap | θ* | 96 % (88–100 %) | 76 % (59–88 %) |
+| cumulative | θ̂ = 0.35 | 95 % (88–100 %) | 86 % (79–94 %) |
+| overlap | θ̂ = 0.40 | 91 % (84–96 %) | 82 % (70–86 %) |
+
+Per pair: `fixed_window/matching_percentage_pairs.csv`; summary:
+`fixed_window/matching_percentage_summary.csv`.
+
+![matching percentage](figures/matching_percentage.png)
+
 ### Observations
 
 - Overlapping is robust: median matched Jaccard 1.00 at θ* for every pair, identical
@@ -523,5 +542,9 @@ Choices made by the author during the analysis.
 - Fixed window width: in addition to θ*, one Jaccard threshold θ for all snapshot
   counts, chosen per approach by the highest mean score over all pairs (cumulative
   θ = 0.35, overlapping θ = 0.40).
+- Share of identically matched groups: both denominators reported, min(n_i, n_j)
+  (quality of the matching) and max(n_i, n_j) (coverage of all groups), as the mean
+  over the pairs of snapshot counts, at θ* and θ̂; shown as bars of the mean with a
+  min–max line.
 - The fixed-window analysis is kept on its own branch; main keeps the snapshot-count
   windows (window width depending on S).
