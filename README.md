@@ -20,16 +20,23 @@ python -m pip install -r requirements.txt
 ## Run Graph Matching
 
 ```bash
-python graph-matching/graph_matching.py --approach all --output graph-matching/outputs/graph_matching
+python graph-matching/scripts/graph_matching.py --approach all
 ```
 
-The default community matching threshold is Jaccard `0.5`.
+Every snapshot window is 50 days wide and the window ends are anchored at the
+cutoff (day 526), so no window is truncated: interval and cumulative have 10
+snapshots (window ends at days 76, 126, ..., 526; cumulative windows start at
+day 0), overlap has 20 snapshots (window ends every 25 days, days 51 to 526).
+The sensitivity analysis uses the same windows.
+
+`matches.csv` lists community pairs with Jaccard >= `0.5`; identity matching
+below uses the stability criterion instead.
 
 ## Run Identity And Event Analysis
 
 ```bash
-python graph-matching/identity_events.py --approach all
-python graph-matching/stage_events.py --approach all
+python graph-matching/scripts/identity_events.py --approach all
+python graph-matching/scripts/stage_events.py --approach all
 ```
 
 Identity analysis now separates unlabeled group observations from final labeled
@@ -55,6 +62,10 @@ communities:
   and Jaccard scores for every non-empty overlap.
 
 Prospective and retrospective stability use a default threshold of `0.4`.
+Only relations that reach this threshold in at least one direction count as
+parents or children of a community, both for identity inheritance and for the
+event classification, so a transition labelled as a continuation always
+transfers the identity.
 Mutual nomination is applied only to simultaneous split-and-merge transitions;
 ordinary continuations, splits, and merges inherit through the strongest
 eligible prospective or retrospective stability candidate.
@@ -66,7 +77,7 @@ For large graph snapshots, node-link diagrams are difficult to interpret. The re
 Open this notebook:
 
 ```text
-graph-matching/metric_visualization_notebook.ipynb
+graph-matching/scripts/metric_visualization_notebook.ipynb
 ```
 
 It displays the metric tables and inline figures directly in the notebook. It does not write metric CSVs or dashboard HTML files.
@@ -79,8 +90,8 @@ The notebook covers:
 ## Visualize Final Community Transitions
 
 ```bash
-python graph-matching/visualize_final_transitions.py --groups-per-approach 3
-python graph-matching/visualize_transition_ego_graphs.py --groups-per-approach 3
+python graph-matching/scripts/visualize_final_transitions.py --groups-per-approach 3
+python graph-matching/scripts/visualize_transition_ego_graphs.py --groups-per-approach 3
 ```
 
 These write:
@@ -103,9 +114,9 @@ events, and colored edges show continuation, split, and merge relationships.
 ## Run Stage Identification Analysis
 
 ```bash
-python graph-matching/stage_identification_analysis.py --approach overlap
-python graph-matching/stage_identification_analysis.py --approach all
-python graph-matching/visualize_stage_identification.py
+python graph-matching/scripts/stage_identification_analysis.py --approach overlap
+python graph-matching/scripts/stage_identification_analysis.py --approach all
+python graph-matching/scripts/visualize_stage_identification.py
 ```
 
 This analysis uses `v020.zip`, the professor's `group_analysis` package, as a

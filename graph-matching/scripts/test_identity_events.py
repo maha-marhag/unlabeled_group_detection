@@ -145,3 +145,15 @@ def test_simultaneous_split_and_merge_uses_mutual_nomination() -> None:
     assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))
     assert group_of(ids, observation_to_group, (1, 1)) == group_of(ids, observation_to_group, (0, 1))
     assert len({group_of(ids, observation_to_group, (1, 0)), group_of(ids, observation_to_group, (1, 1))}) == 2
+
+
+def test_below_threshold_overlap_does_not_turn_a_continuation_into_a_merge() -> None:
+    # 9 of 10 members continue into a larger community (prospective 0.9,
+    # retrospective 0.3); a second parent shares a single member (below threshold).
+    snapshots = [
+        [community(0, 0, set(range(10))), community(0, 1, set(range(100, 120)))],
+        [community(1, 0, set(range(9)) | {100} | set(range(200, 220)))],
+    ]
+    ids, observation_to_group, transitions = groups_for(snapshots)
+    assert inherited_from(transitions, 1, 0) == ids[(0, 0)]
+    assert group_of(ids, observation_to_group, (1, 0)) == group_of(ids, observation_to_group, (0, 0))

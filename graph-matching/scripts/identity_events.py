@@ -261,6 +261,11 @@ def assign_ids(
       ``stability_threshold``; forward nominations are ranked by prospective
       stability and backward nominations by retrospective stability.
       ``jaccard_threshold`` only pre-filters candidate relations.
+
+    Only accepted relations count as parents or children of a community, exactly as
+    in ``stage_events.classify_events``: a continuation, split or merge of the event
+    table is the same continuation, split or merge for the identity decision. A
+    below-threshold overlap (e.g. one shared member) is ignored.
     - ``"jaccard"``: a relation is accepted when its Jaccard similarity reaches
       ``jaccard_threshold``; both nomination directions are ranked by Jaccard
       and ``stability_threshold`` is ignored.
@@ -306,7 +311,7 @@ def assign_ids(
         by_previous: dict[int, list[IdentityRelation]] = defaultdict(list)
         by_current: dict[int, list[IdentityRelation]] = defaultdict(list)
         for relation in relations:
-            if relation.jaccard < jaccard_threshold:
+            if relation.jaccard < jaccard_threshold or not accepts(relation):
                 continue
             by_previous[relation.previous.local_id].append(relation)
             by_current[relation.current.local_id].append(relation)

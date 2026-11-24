@@ -16,7 +16,6 @@ import json
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from math import ceil
 from pathlib import Path
 from typing import Iterable
 
@@ -90,6 +89,24 @@ def load_edges(path: Path, cutoff_days: int) -> pd.DataFrame:
     return edges
 
 
+# Fixed-width windows whose ends are anchored at the cutoff.
+def anchored_windows(approach: str, cutoff_ts: int, window_ts: int, stride_ts: int) -> list[SnapshotWindow]:
+    """Windows of width ``window_ts`` ending at cutoff - j * stride (end >= window width).
+
+    Every window is a full window and the last one ends exactly at the cutoff. A
+    cumulative window ending at t is [0, t], an interval or overlap window [t - W, t].
+    """
+    if stride_ts < 1:
+        raise ValueError("The stride must be at least one second.")
+    ends = sorted(cutoff_ts - j * stride_ts for j in range((cutoff_ts - window_ts) // stride_ts + 1))
+    windows = []
+    for index, end_ts in enumerate(ends):
+        start_ts = 0 if approach == "cumulative" else end_ts - window_ts
+        windows.append(SnapshotWindow(
+            index, f"days_{start_ts / SECONDS_PER_DAY:.2f}_{end_ts / SECONDS_PER_DAY:.2f}", start_ts, end_ts))
+    return windows
+
+
 # Build the snapshot windows for interval, cumulative, or overlapping analyses.
 def make_windows(
     approach: str,
@@ -98,110 +115,65 @@ def make_windows(
     num_snapshots: int | None,
     overlap_fraction: float,
 ) -> list[SnapshotWindow]:
+    """Snapshot windows of one approach.
+
+    Without ``num_snapshots`` (the pipeline default) every window is ``snapshot_days``
+    wide and the window ends are anchored at the cutoff: interval and cumulative
+    windows end every ``snapshot_days`` days, overlap windows every
+    ``snapshot_days * (1 - overlap_fraction)`` days. With 526 days and 50-day windows
+    this gives 10 interval / cumulative snapshots (ends 76, 126, ..., 526) and 20
+    overlap snapshots (ends 51, 76, ..., 526).
+
+    With an explicit ``num_snapshots`` the windows are stretched to cover the whole
+    period, so their width depends on the count (earlier configuration, kept for
+    reference).
+    """
     snapshot_ts = snapshot_days * SECONDS_PER_DAY
     cutoff_ts = cutoff_days * SECONDS_PER_DAY
-    snapshot_count = num_snapshots or ceil(cutoff_ts / snapshot_ts)
+    if approach not in {"interval", "cumulative", "overlap"}:
+        raise ValueError(f"Unknown approach: {approach}")
+    if num_snapshots is None:
+        if approach == "overlap":
+            if not 0 <= overlap_fraction < 1:
+                raise ValueError("overlap_fraction must be in [0, 1).")
+            stride_ts = max(1, int(snapshot_ts * (1 - overlap_fraction)))
+        else:
+            stride_ts = snapshot_ts
+        return anchored_windows(approach, cutoff_ts, snapshot_ts, stride_ts)
+    if num_snapshots < 1:
+        raise ValueError("num_snapshots must be at least 1.")
 
-    if approach in {"interval", "cumulative"} and num_snapshots is not None:
-        # An explicitly requested count divides the full period into equal
-        # steps, so interval and cumulative can be run at the same snapshot
-        # counts as overlap in the sensitivity analysis.
-        if num_snapshots < 1:
-            raise ValueError("num_snapshots must be at least 1.")
+    if approach in {"interval", "cumulative"}:
+        # An explicitly requested count divides the full period into equal steps.
         bounds = [round(index * cutoff_ts / num_snapshots) for index in range(num_snapshots)]
         bounds.append(cutoff_ts)
         windows = []
         for index in range(num_snapshots):
             start_ts = 0 if approach == "cumulative" else bounds[index]
             end_ts = bounds[index + 1]
-            start_day = start_ts / SECONDS_PER_DAY
-            end_day = end_ts / SECONDS_PER_DAY
-            windows.append(
-                SnapshotWindow(index, f"days_{start_day:.2f}_{end_day:.2f}", start_ts, end_ts)
-            )
+            windows.append(SnapshotWindow(
+                index, f"days_{start_ts / SECONDS_PER_DAY:.2f}_{end_ts / SECONDS_PER_DAY:.2f}", start_ts, end_ts))
         return windows
 
-    if approach == "interval":
-        return [
-            SnapshotWindow(
-                i,
-                f"days_{(i * snapshot_ts) // SECONDS_PER_DAY}_{min((i + 1) * snapshot_ts, cutoff_ts) // SECONDS_PER_DAY}",
-                i * snapshot_ts,
-                min((i + 1) * snapshot_ts, cutoff_ts),
-            )
-            for i in range(snapshot_count)
-            if i * snapshot_ts < cutoff_ts
-        ]
+    if not 0 <= overlap_fraction < 1:
+        raise ValueError("overlap_fraction must be in [0, 1).")
+    if num_snapshots == 1:
+        return [SnapshotWindow(0, f"days_0_{cutoff_days}", 0, cutoff_ts)]
 
-    if approach == "cumulative":
-        return [
-            SnapshotWindow(
-                i,
-                f"days_0_{min((i + 1) * snapshot_ts, cutoff_ts) // SECONDS_PER_DAY}",
-                0,
-                min((i + 1) * snapshot_ts, cutoff_ts),
-            )
-            for i in range(snapshot_count)
-            if i * snapshot_ts < cutoff_ts
-        ]
-
-    if approach == "overlap":
-        if not 0 <= overlap_fraction < 1:
-            raise ValueError("overlap_fraction must be in [0, 1).")
-        if num_snapshots is not None:
-            if num_snapshots < 1:
-                raise ValueError("num_snapshots must be at least 1.")
-            if num_snapshots == 1:
-                return [SnapshotWindow(0, f"days_0_{cutoff_days}", 0, cutoff_ts)]
-
-            # Solve W + (n - 1) * W * (1 - overlap) = cutoff so an
-            # explicitly requested number of windows covers the full period.
-            denominator = 1 + (num_snapshots - 1) * (1 - overlap_fraction)
-            window_width = cutoff_ts / denominator
-            stride = (cutoff_ts - window_width) / (num_snapshots - 1)
-            windows = []
-            for index in range(num_snapshots):
-                start_ts = round(index * stride)
-                end_ts = cutoff_ts if index == num_snapshots - 1 else round(
-                    index * stride + window_width
-                )
-                start_day = start_ts / SECONDS_PER_DAY
-                end_day = end_ts / SECONDS_PER_DAY
-                windows.append(
-                    SnapshotWindow(
-                        index,
-                        f"days_{start_day:.2f}_{end_day:.2f}",
-                        start_ts,
-                        end_ts,
-                    )
-                )
-            return windows
-
-        # With a 50-day snapshot and 0.5 overlap, the stride is 25 days:
-        # [0, 50], [25, 75], [50, 100], ... . In interval notation, this is
-        # equivalent to taking [ts, ts+1] and [ts+1/2, ts+1/2+1].
-        stride_ts = max(1, int(snapshot_ts * (1 - overlap_fraction)))
-        windows = []
-        start_ts = 0
-        index = 0
-        while start_ts + snapshot_ts <= cutoff_ts:
-            end_ts = start_ts + snapshot_ts
-            windows.append(
-                SnapshotWindow(
-                    index,
-                    f"days_{start_ts // SECONDS_PER_DAY}_{end_ts // SECONDS_PER_DAY}",
-                    start_ts,
-                    end_ts,
-                )
-            )
-            index += 1
-            start_ts += stride_ts
-        return windows
-
-    raise ValueError(f"Unknown approach: {approach}")
+    # Solve W + (n - 1) * W * (1 - overlap) = cutoff so an explicitly requested
+    # number of overlap windows covers the full period.
+    denominator = 1 + (num_snapshots - 1) * (1 - overlap_fraction)
+    window_width = cutoff_ts / denominator
+    stride = (cutoff_ts - window_width) / (num_snapshots - 1)
+    windows = []
+    for index in range(num_snapshots):
+        start_ts = round(index * stride)
+        end_ts = cutoff_ts if index == num_snapshots - 1 else round(index * stride + window_width)
+        windows.append(SnapshotWindow(
+            index, f"days_{start_ts / SECONDS_PER_DAY:.2f}_{end_ts / SECONDS_PER_DAY:.2f}", start_ts, end_ts))
+    return windows
 
 
-# Select the temporal edges that fall inside one snapshot window.
 def make_fixed_windows(
     approach: str,
     cutoff_days: int,
@@ -221,16 +193,10 @@ def make_fixed_windows(
     if stride_divisor < 1 or window_ts % stride_divisor:
         raise ValueError("stride_divisor must be a positive divisor of the window width in seconds.")
     stride_ts = window_ts // stride_divisor
-    cutoff_ts = cutoff_days * SECONDS_PER_DAY
-    ends = sorted(cutoff_ts - j * stride_ts for j in range((cutoff_ts - window_ts) // stride_ts + 1))
-    windows = []
-    for index, end_ts in enumerate(ends):
-        start_ts = 0 if approach == "cumulative" else end_ts - window_ts
-        windows.append(SnapshotWindow(
-            index, f"days_{start_ts / SECONDS_PER_DAY:.2f}_{end_ts / SECONDS_PER_DAY:.2f}", start_ts, end_ts))
-    return windows
+    return anchored_windows(approach, cutoff_days * SECONDS_PER_DAY, window_ts, stride_ts)
 
 
+# Select the temporal edges that fall inside one snapshot window.
 def edges_for_window(edges: pd.DataFrame, window: SnapshotWindow) -> pd.DataFrame:
     return edges.loc[(edges["ts"] >= window.start_ts) & (edges["ts"] < window.end_ts)]
 
@@ -433,7 +399,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run temporal graph matching on SNAP Email-EU-core.")
     project_dir = find_project_root()
     parser.add_argument("--data", type=Path, default=project_dir / "dataset" / "email-Eu-core-temporal.txt")
-    parser.add_argument("--output", type=Path, default=Path("outputs/graph_matching"))
+    parser.add_argument("--output", type=Path,
+                        default=project_dir / "code" / "graph-matching" / "outputs" / "graph_matching")
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
     parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)

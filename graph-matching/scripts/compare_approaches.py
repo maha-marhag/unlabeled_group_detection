@@ -548,11 +548,13 @@ def markdown_table(frame: pd.DataFrame, columns: list[str]) -> str:
 def write_report(output_dir: Path, a: pd.DataFrame, b: pd.DataFrame, stage_summary: pd.DataFrame,
                  method_comparison: pd.DataFrame, event_summary: pd.DataFrame) -> None:
     erosion = event_summary.loc[event_summary["post_stage_type"] == "Erosion"]
+    counts = {row["approach"]: int(row["snapshot_count"]) for _, row in a.iterrows()}
+    depth = int(b.loc[b["approach"] == "overlap", "max_depth_edges"].iloc[0])
     text = f"""# Comparison of cumulative, interval, and overlap approaches
 
 ## Scope and comparability
 
-All outputs use the same 526-day dataset. Cumulative and interval use 11 snapshots with 50-day steps. Overlap uses 20 snapshots with 50-day windows and a 25-day stride. Raw totals therefore reflect both approach behavior and observation frequency. Normalized rates and proportions are the primary comparison measures.
+All outputs use the same 526-day dataset and 50-day windows whose ends are anchored at day 526, so every window is a full window. Cumulative uses {counts['cumulative']} snapshots and interval {counts['interval']} snapshots (one window end every 50 days); overlap uses {counts['overlap']} snapshots (one window end every 25 days). Raw totals therefore reflect both approach behavior and observation frequency. Normalized rates and proportions are the primary comparison measures.
 
 Accepted lineage relations satisfy prospective stability >= 0.4 or retrospective stability >= 0.4. Every detected community at a snapshot is an observation node. Identity chains include final and intermediate/dead chains.
 
@@ -596,11 +598,11 @@ Stage count share and transition-duration share are separate. `count_duration_in
 
 - **Cumulative gives the strongest apparent continuity but has the most historical inertia.** Its mean accepted Jaccard is {a.loc[a['approach'] == 'cumulative', 'mean_accepted_jaccard'].iloc[0]:.3f}, versus {a.loc[a['approach'] == 'interval', 'mean_accepted_jaccard'].iloc[0]:.3f} for interval and {a.loc[a['approach'] == 'overlap', 'mean_accepted_jaccard'].iloc[0]:.3f} for overlap. It also has the largest mean observation group size and the fewest split/merge events per transition. Because every snapshot retains all previous edges, this stability partly reflects construction rather than only social persistence.
 - **Interval is the most fragmented and volatile.** It produces {a.loc[a['approach'] == 'interval', 'all_identity_chain_count'].iloc[0]:.0f} identity chains, has the lowest accepted and inherited Jaccard, and has the highest split and merge rates per transition. It responds to change but loses continuity at hard 50-day boundaries.
-- **Overlap is the middle ground.** Its similarity and normalized split/merge rates fall between cumulative and interval. It retains the local 50-day horizon while reducing boundary discontinuity and provides 20 observation points. Its large component and 19-edge maximum depth show that it preserves long lineages without cumulative memory.
+- **Overlap is the middle ground.** Its similarity and normalized split/merge rates fall between cumulative and interval. It retains the local 50-day horizon while reducing boundary discontinuity and provides {counts['overlap']} observation points. Its large component and {depth}-edge maximum depth show that it preserves long lineages without cumulative memory.
 - Event-based stages are fewer and longer than classic stages for all approaches. Classic/event label agreement is {method_comparison.loc[method_comparison['approach'] == 'cumulative', 'stage_type_agreement_rate'].iloc[0]:.1%} for cumulative, {method_comparison.loc[method_comparison['approach'] == 'interval', 'stage_type_agreement_rate'].iloc[0]:.1%} for interval, and {method_comparison.loc[method_comparison['approach'] == 'overlap', 'stage_type_agreement_rate'].iloc[0]:.1%} for overlap. The lower overlap agreement means event boundaries capture different structure from size-only turning points; it is not a classifier mismatch.
 - Split and merge events do not deterministically imply erosion. The erosion likelihoods are conditional descriptive rates and vary by approach/method. Event type alone has weak-to-moderate association with the following stage in the current sample, so events should remain boundary evidence rather than direct stage labels.
 
-**Recommendation: continue with the overlap approach.** It offers the best balance of temporal continuity, sensitivity to change, and temporal resolution. Keep cumulative as a high-continuity reference and interval as a volatility reference. Before treating the choice as final, run the planned overlap sensitivity analysis at 20 and 50 snapshots and check whether normalized event rates, component structure, and stage distributions remain stable.
+**Recommendation: continue with the overlap approach.** It offers the best balance of temporal continuity, sensitivity to change, and temporal resolution. Keep cumulative as a high-continuity reference and interval as a volatility reference. The robustness of the dynamic groups to the number of snapshots and to the matching threshold is examined separately in the sensitivity analysis (`outputs/sensitivity_analysis`), which uses the same fixed 50-day windows.
 
 ## Output guide
 

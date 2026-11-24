@@ -256,37 +256,6 @@ def relation_qualifier(
     return "none"
 
 
-def add_event(
-    events: list[dict],
-    approach: str,
-    event_sequence: int,
-    event_type: str,
-    from_snapshot: int | None,
-    to_snapshot: int,
-    sources: list[CommunityRecord],
-    targets: list[CommunityRecord],
-    relations: list[IdentityRelation],
-    assigned_ids: dict[tuple[int, int], str],
-    stability_threshold: float,
-) -> int:
-    """Append an event and return the next sequence number."""
-    events.append(
-        event_row(
-            approach,
-            event_sequence,
-            event_type,
-            from_snapshot,
-            to_snapshot,
-            sources,
-            targets,
-            relations,
-            assigned_ids,
-            stability_threshold,
-        )
-    )
-    return event_sequence + 1
-
-
 def event_participants(event: dict) -> list[str]:
     """Return all observation IDs listed in an event row."""
     values = []
