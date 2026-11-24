@@ -3,8 +3,7 @@
 ## Setting
 
 - Three snapshot-construction approaches: **cumulative**, **interval** and
-  **overlapping** windows.
-- Number of snapshots $S \in \{10, 20, 30, 40, 50\}$ over the same lifespan.
+  **overlapping** windows, over the observation period $[0, T]$, $T = 526$ days.
 - Static communities in each snapshot are detected with Louvain.
 - Dynamic groups are built by matching communities of consecutive snapshots with
   the Jaccard index
@@ -13,10 +12,60 @@ $$
 J(A, B) = \frac{|A \cap B|}{|A \cup B|}
 $$
 
-  A community $C_t$ in snapshot $t$ continues the dynamic group of community
-  $C_{t-1}$ in snapshot $t-1$ when $J(C_{t-1}, C_t) \ge \theta$; otherwise it
-  starts a new dynamic group.
+  Only pairs with $J(C_{t-1}, C_t) \ge \theta$ are candidates. A community $C_t$ with
+  one candidate predecessor continues its dynamic group; with several candidates it
+  continues the group of the predecessor with the highest Jaccard index. If the
+  predecessor itself has several candidate successors (a split), only the successor
+  with the highest Jaccard index continues the group. A community without an accepted
+  predecessor starts a new dynamic group.
+- The matching criterion of this analysis is the absolute Jaccard index; the stability
+  criterion of the main pipeline is not varied here.
 - Jaccard threshold $\theta \in \{0.10, 0.15, \ldots, 0.90\}$.
+
+### Snapshot windows
+
+The window width does not depend on the number of snapshots: interval and overlapping
+windows have the width $W = 50$ days, cumulative windows start at the beginning of the
+period. Only the stride changes, $\Delta_k = W / k$ with $k = 1, \dots, 5$, and the
+window ends are anchored at the end of the observation period:
+
+$$
+t^{(k)}_j = T - j\,\Delta_k, \qquad j = 0, 1, \dots, \qquad t^{(k)}_j \ge W .
+$$
+
+The window ending at $t$ is
+
+$$
+w(t) = \begin{cases} [0, t] & \text{cumulative} \\ [t - W, t] & \text{interval, overlapping} \end{cases}
+$$
+
+so consecutive sliding windows overlap by a fraction $1 - 1/k$. The number of
+snapshots follows from the stride,
+
+$$
+S_k = \left\lfloor \frac{T - W}{\Delta_k} \right\rfloor + 1 = \left\lfloor \frac{476\,k}{50} \right\rfloor + 1, \qquad S \in \{10, 20, 29, 39, 48\}.
+$$
+
+| $k$ | stride $\Delta_k$ (days) | window ends $t$ (days) | $S$ |
+|---|---|---|---|
+| 1 | 50 | 76, 126, …, 526 | 10 |
+| 2 | 25 | 51, 76, …, 526 | 20 |
+| 3 | 16.7 | 59.3, 76, …, 526 | 29 |
+| 4 | 12.5 | 51, 63.5, …, 526 | 39 |
+| 5 | 10 | 56, 66, …, 526 | 48 |
+
+- The number of snapshots $S$ is therefore the **temporal resolution** (how often the
+  network is observed); the window ending at a time point $t$, and hence its snapshot
+  graph, is the same for all $S$.
+- For the overlapping approach the overlap of consecutive windows changes with $S$:
+  $1 - 1/k = 0\,\%, 50\,\%, 67\,\%, 75\,\%, 80\,\%$ for $S = 10, 20, 29, 39, 48$. A higher
+  temporal resolution therefore also means more shared interaction between consecutive
+  snapshots.
+- Interval windows do not overlap, so their stride equals their width: they exist only
+  for $k = 1$ ($S = 10$), where they coincide with the overlapping windows. All interval
+  results below are therefore identical to the overlapping results for $S = 10$, and the
+  interval approach cannot be compared across snapshot counts.
+- Every configuration shares the last snapshot ($[476, 526]$, cumulative $[0, 526]$).
 - For each configuration $(a, S, \theta)$, with $a$ the approach, we record the
   number of dynamic groups $N(a, S, \theta)$.
 
@@ -33,46 +82,43 @@ N(a, S, \theta^*_S) = N^*
 $$
 
 $\theta^*_S$ is obtained by linear interpolation between the two neighbouring
-grid points. The goal is a value $N^*$ that is reached by all five
-snapshot configurations. That gives a set of pairs $(S_i, \theta^*_{S_i})$ that
+grid points. The goal is a value $N^*$ that is reached by all snapshot configurations of the
+approach (five for cumulative and overlapping, one for interval). That gives a set of pairs $(S_i, \theta^*_{S_i})$ that
 produce the same number of dynamic groups.
 
 ### Results
 
 Range of $N(a, S, \theta)$ over $\theta \in [0.10, 0.90]$:
 
-| approach   | S = 10   | S = 20   | S = 30    | S = 40    | S = 50    |
-|------------|----------|----------|-----------|-----------|-----------|
-| cumulative | 25 – 83  | 31 – 144 | 38 – 191  | 46 – 222  | 59 – 286  |
-| interval   | 33 – 143 | 66 – 299 | 109 – 458 | 156 – 618 | 198 – 803 |
-| overlap    | 31 – 127 | 48 – 276 | 85 – 432  | 103 – 563 | 128 – 734 |
+| approach   | S = 10 | S = 20 | S = 29 | S = 39 | S = 48 |
+|---|---|---|---|---|---|
+| cumulative | 20 – 79 | 31 – 139 | 39 – 165 | 44 – 205 | 57 – 262 |
+| interval | 39 – 146 | – | – | – | – |
+| overlap | 39 – 146 | 50 – 269 | 57 – 378 | 70 – 459 | 78 – 552 |
 
 Chosen reference levels and the corresponding thresholds $\theta^*_S$:
 
-| approach   | $N^*$ | curves reached | S = 10 | S = 20 | S = 30 | S = 40 | S = 50 |
-|------------|-------|----------------|--------|--------|--------|--------|--------|
-| cumulative | 70    | 5 / 5          | 0.87   | 0.75   | 0.56   | 0.52   | 0.43   |
-| interval   | 200   | 4 / 5          | –      | 0.52   | 0.32   | 0.22   | 0.11   |
-| overlap    | 110   | 4 / 5          | 0.79   | 0.46   | 0.32   | 0.23   | –      |
+| approach   | $N^*$ | curves reached | S = 10 | S = 20 | S = 29 | S = 39 | S = 48 |
+|---|---|---|---|---|---|---|---|
+| cumulative | 70 | 5 / 5 | 0.88 | 0.75 | 0.65 | 0.56 | 0.52 |
+| interval | 110 | 1 / 1 | 0.64 | – | – | – | – |
+| overlap | 110 | 5 / 5 | 0.64 | 0.48 | 0.42 | 0.40 | 0.37 |
 
 ### Analysis
 
 - $N(a, S, \theta)$ increases monotonically with $\theta$ for every approach and
   every $S$: a stricter threshold breaks more continuation links between
   consecutive snapshots, so more distinct dynamic groups are produced.
-- $N(a, S, \theta)$ also increases with $S$ at a fixed $\theta$, and the curves
-  never cross. More snapshots mean more matching steps, and each step is a chance
-  for a chain to break.
-- Cumulative is the least sensitive approach (25 to 286 groups over the whole
-  grid); interval is the most sensitive (33 to 803).
-- Only the cumulative approach has a common number of groups reached by all
-  five snapshot configurations (any $N^* \in [59, 83]$). For interval and overlap
-  the maximum of the $S = 10$ curve lies below or at the minimum of the $S = 50$
-  curve, so no common level exists within $\theta \in [0.10, 0.90]$.
-- To keep the same number of groups as $S$ grows, $\theta$ has to decrease
-  substantially (cumulative: from 0.87 at $S = 10$ to 0.43 at $S = 50$). The
-  Jaccard threshold and the number of snapshots are therefore not independent
-  parameters. A "well-defined" threshold has to be chosen jointly with $S$.
+- $N(a, S, \theta)$ also increases with $S$ at a fixed $\theta$: more snapshots mean
+  more matching steps, and each step is a chance for a chain to break.
+- Cumulative is the least sensitive approach (20 to 262 groups over the whole grid),
+  overlapping the most sensitive (39 to 552).
+- Both approaches have a common number of groups reached by all five snapshot counts
+  (cumulative: any $N^* \in [57, 79]$; overlapping: any $N^* \in [78, 146]$).
+- To keep the same number of groups as $S$ grows, $\theta$ still has to decrease
+  (cumulative from 0.88 at $S = 10$ to 0.52 at $S = 48$, overlapping from 0.64 to
+  0.37): the *number* of groups depends on both parameters jointly. Whether the groups
+  themselves depend on them is tested below.
 
 ## Dynamic groups at matched group counts
 
@@ -80,8 +126,7 @@ Chosen reference levels and the corresponding thresholds $\theta^*_S$:
 
 For each approach $a$ and each snapshot count $S$ whose curve reaches the reference
 level $N^*$, the dynamic groups are recomputed with the matching threshold set to
-exactly $\theta^*_S$. Configurations that never reach $N^*$ are excluded (interval
-$S = 10$, overlap $S = 50$). The time point of a snapshot is the end of its window,
+exactly $\theta^*_S$. The time point of a snapshot is the end of its window,
 $t$. For a dynamic group $D$ observed at the time points $t_{\text{first}}, \ldots,
 t_{\text{last}}$ with member sets $U(D, t)$ we record
 
@@ -95,54 +140,43 @@ A group observed in a single snapshot has $\ell(D) = 0$.
 ### Results
 
 | approach   | $S$ | $\theta^*_S$ | groups | median $\ell$ (days) | median $m$ | single-snapshot groups | groups with $\ell \ge 100$ days |
-|------------|-----|--------------|--------|----------------------|------------|------------------------|---------------------------------|
-| cumulative | 10  | 0.867        | 66     | 0.0                  | 58.0       | 46                     | 16                              |
-| cumulative | 20  | 0.753        | 71     | 0.0                  | 51.0       | 39                     | 16                              |
-| cumulative | 30  | 0.564        | 72     | 17.5                 | 46.0       | 29                     | 17                              |
-| cumulative | 40  | 0.523        | 70     | 13.2                 | 33.5       | 30                     | 15                              |
-| cumulative | 50  | 0.433        | 70     | 10.5                 | 27.5       | 28                     | 15                              |
-| interval   | 20  | 0.517        | 205    | 0.0                  | 46.0       | 163                    | 7                               |
-| interval   | 30  | 0.321        | 199    | 0.0                  | 40.0       | 134                    | 14                              |
-| interval   | 40  | 0.221        | 196    | 0.0                  | 29.5       | 108                    | 13                              |
-| interval   | 50  | 0.106        | 199    | 0.0                  | 26.0       | 107                    | 21                              |
-| overlap    | 10  | 0.793        | 110    | 0.0                  | 54.5       | 93                     | 2                               |
-| overlap    | 20  | 0.463        | 112    | 25.0                 | 54.0       | 54                     | 13                              |
-| overlap    | 30  | 0.316        | 109    | 17.0                 | 33.0       | 40                     | 16                              |
-| overlap    | 40  | 0.228        | 109    | 12.8                 | 32.0       | 43                     | 18                              |
+|---|---|---|---|---|---|---|---|
+| cumulative | 10 | 0.879 | 66 | 0.0 | 64.5 | 43 | 15 |
+| cumulative | 20 | 0.753 | 71 | 25.0 | 59.0 | 34 | 14 |
+| cumulative | 29 | 0.650 | 70 | 0.0 | 52.0 | 36 | 17 |
+| cumulative | 39 | 0.559 | 70 | 12.5 | 45.0 | 27 | 19 |
+| cumulative | 48 | 0.516 | 72 | 10.0 | 26.5 | 32 | 15 |
+| interval | 10 | 0.637 | 110 | 0.0 | 50.0 | 93 | 11 |
+| overlap | 10 | 0.637 | 110 | 0.0 | 50.0 | 93 | 11 |
+| overlap | 20 | 0.480 | 110 | 25.0 | 50.5 | 50 | 11 |
+| overlap | 29 | 0.423 | 111 | 16.7 | 54.0 | 47 | 11 |
+| overlap | 39 | 0.401 | 112 | 12.5 | 49.0 | 45 | 15 |
+| overlap | 48 | 0.373 | 108 | 20.0 | 42.0 | 35 | 19 |
 
 ### Analysis
 
 - Matching the threshold to the number of snapshots reproduces the target number of
-  groups closely (deviation at most 6 groups), confirming that $\theta^*_S$ is a
-  meaningful calibration.
-- For the cumulative approach the number of long-lived groups ($\ell \ge 100$ days)
-  is nearly invariant in $S$ (15 to 17). This is a first indication that the
-  persistent structure is preserved across snapshot counts once $\theta$ is
-  calibrated.
-- The median maximum size decreases with $S$ for all approaches. With more snapshots,
-  each window covers less activity (interval, overlap) or more of the windows end early
-  in the period (cumulative). Louvain then finds smaller static communities, so small,
-  short-lived groups make up a larger share of a fixed group count.
-- The interval approach is dominated by groups observed in a single snapshot (more
-  than half in every configuration), so an equal group count does not imply an equal
-  persistent structure.
-- The overlap approach at $S = 10$ is an outlier: 85 % of its groups are
-  single-snapshot and only 2 reach 100 days, against 13 to 18 for $S = 20$ to $40$.
-- The distributions of $(\ell, m)$ look similar across $S$ for cumulative, and for
-  $S \ge 20$ in interval and overlap. Whether the groups are the *same* groups is
-  tested at member level in the next section.
+  groups closely (deviation at most 4 groups).
+- The number of long-lived groups ($\ell \ge 100$ days) is similar across $S$
+  (cumulative 14 to 19, overlapping 11 to 19).
+- The overlapping (and interval) configuration with $S = 10$ is dominated by groups
+  observed in a single snapshot (93 of 110): with a stride equal to the window width,
+  consecutive windows share no interaction and fewer communities are continued.
+- Whether the groups are the *same* groups is tested at member level in the next
+  section.
 
 ## Robustness of the dynamic groups to the number of snapshots
 
 ### Hypothesis
 
-> **H.** For a well-chosen Jaccard threshold, the number of snapshots does not
-> affect the identified dynamic groups.
+> **H.** For a fixed window width $W$ and a well-chosen Jaccard threshold, the number
+> of snapshots does not affect the identified dynamic groups.
 
 The thresholds $\theta^*_S$ of the previous sections equalise the *number* of
 groups across snapshot counts. Here we test whether they also produce the *same*
 groups, i.e. groups with the same members at the same points in time. The test is
-carried out separately for each approach (cumulative, interval, overlapping).
+carried out separately for the cumulative and the overlapping approach; the interval
+approach has a single snapshot count.
 
 ### Notation
 
@@ -176,52 +210,41 @@ $$
 
 ### Common time points
 
-Two configurations $S_i < S_j$ can only be compared at time points they share.
-For the cumulative and interval approaches, the window ends of $S_i$ and $S_j$
-lie on the grids $526/S_i$ and $526/S_j$ days, and the comparison uses their
+Two configurations $S_i < S_j$ can only be compared at time points they share. All
+window ends lie on the grid $T - j\,\Delta_k$, so the comparison uses their exact
 intersection
 
 $$
-T_{ij} = T_{S_i} \cap T_{S_j},
+T_{ij} = T_{S_i} \cap T_{S_j} \supseteq \{ T - m\,W : m = 0, \dots, 9 \} = \{76, 126, \dots, 526\},
 $$
 
-e.g. for $S_i = 10$, $S_j = 20$ and a lifespan of 526 days, $T_{ij}$ contains the
-10 window ends of $S_i$. Every pair has $|T_{ij}| = 10$, except $(20, 40)$ with
-$|T_{ij}| = 20$.
-
-For the overlapping approach the window width depends on the number of snapshots,
-$W = 1052 / (S + 1)$ days with stride $W/2$, so the window ends lie on the grid
-$526 / (S + 1)$ and two configurations share almost no exact time point. Each time
-point of the configuration with fewer snapshots is therefore paired with the
-nearest window end of the other configuration:
-
-$$
-P_{ij} = \big\{ (t, \tau(t)) \;:\; t \in T_{S_i} \big\}, \qquad
-\tau(t) = \arg\min_{t' \in T_{S_j}} |t - t'|,
-$$
-
-which places the two time points of each pair at most half a stride apart. For
-the cumulative and interval approaches $P_{ij} = \{(t, t) : t \in T_{ij}\}$.
+i.e. 10 common time points for every pair, and 20 for $(S_i, S_j) = (20, 39)$. Because
+the window width is the same for all $S$, the snapshot graph at a common time point is
+identical in both configurations, and the comparison isolates how the communities are
+linked over time. In the following, $P_{ij} = \{(t, t) : t \in T_{ij}\}$ denotes the
+pairs of common time points.
 
 ### Similarity of two dynamic groups
 
 For $D \in \mathbb{D}_{S_i}$ and $D' \in \mathbb{D}_{S_j}$, let
 
 $$
-P_{ij}(D, D') = \{ (t, t') \in P_{ij} \;:\; U(D, t) \neq \emptyset \;\lor\; U(D', t') \neq \emptyset \}
+P_{ij}(D, D') = \{ (t, t') \in P_{ij} \;:\; J\big(U(D, t), U(D', t')\big) > 0 \}
 $$
 
-be the common time points at which at least one of the two groups exists. Their
+be the common time points at which the two groups share at least one member. Their
 similarity is the mean Jaccard index of their member sets over these time points,
 
 $$
 \bar{J}(D, D') = \frac{1}{|P_{ij}(D, D')|} \sum_{(t, t') \in P_{ij}(D, D')} J\big(U(D, t), U(D', t')\big),
 $$
 
-where a time point at which only one of the two groups exists contributes
-$J = 0$. Two groups therefore score high only if they have the same members
-**and** exist over the same period. Groups that never exist at a common time point
-cannot be compared and are excluded; their number is reported.
+and $\bar{J}(D, D') = 0$ if $P_{ij}(D, D') = \emptyset$. Time points with $J = 0$,
+at which one of the two groups does not exist or the two share no member, are left out
+of both the sum and the count: $\bar{J}$ measures how similar the member sets are where
+the two groups overlap, not whether they exist over the same period. Groups that never
+exist at a common time point cannot be compared and are excluded; their number is
+reported.
 
 ### Cross table and one-to-one matching
 
@@ -247,196 +270,61 @@ $$
 \mathcal{J}_{ij} = \big\{ \mathbf{M}^{(ij)}_{k, \pi^*(k)} \big\}_k,
 $$
 
-which is the main outcome: values close to 1 mean that a group of $S_i$ has a
-counterpart in $S_j$ with the same chronicle.
-
-### Global agreement: Adjusted Rand Index
-
-As a complementary, matching-free measure, the two configurations are compared as
-partitions of node–time elements. Each element $(u, p)$, with $p \in P_{ij}$ and
-$u$ a member of some group in both configurations at $p$, is labelled by its group
-in $S_i$ and its group in $S_j$. The contingency table of the two labellings is
-
-$$
-n_{kl} = \sum_{(t, t') \in P_{ij}} \big| U(D_k, t) \cap U(D'_l, t') \big|,
-$$
-
-with row sums $a_k$, column sums $b_l$ and total $n$, and
-
-$$
-\mathrm{ARI}_{ij} = \frac{\sum_{kl} \binom{n_{kl}}{2} - \Big[\sum_k \binom{a_k}{2} \sum_l \binom{b_l}{2}\Big] \big/ \binom{n}{2}}
-{\tfrac{1}{2}\Big[\sum_k \binom{a_k}{2} + \sum_l \binom{b_l}{2}\Big] - \Big[\sum_k \binom{a_k}{2} \sum_l \binom{b_l}{2}\Big] \big/ \binom{n}{2}}.
-$$
-
-$\mathrm{ARI} = 1$ when the two configurations assign every node at every common
-time point to corresponding groups, and $\mathrm{ARI} \approx 0$ for chance
-agreement. Because it counts node–time elements, the ARI is dominated by large,
-long-lived groups, whereas $\mathcal{J}_{ij}$ weights every group equally.
+Values close to 1 mean that a group of $S_i$ has a counterpart in $S_j$ with the same
+members at the common time points where both exist.
 
 ### Evaluation
 
-The comparison is run for every pair $S_i < S_j$ of configurations that reach
-$N^*$: 10 pairs for the cumulative approach, 6 each for interval and overlapping.
-The hypothesis is supported for an approach when the matched similarities
-$\mathcal{J}_{ij}$ are high for most groups and the ARI is high, i.e. the
-assignment is close to a 1:1 correspondence between the group sets. Based on the
-previous sections, this is expected at least for the cumulative approach.
+The comparison is run for every pair $S_i < S_j$ of configurations: 10 pairs each for
+the cumulative and the overlapping approach. The interval approach has a single
+snapshot count and cannot be compared across $S$. The hypothesis is supported for an
+approach when the matched similarities $\mathcal{J}_{ij}$ are high for most groups and
+the groups correspond one to one (maximum alignment, below).
 
-### Results
+Since the snapshot graph at a common time point is the same in both configurations, the
+communities detected there are the same too. Two groups that share a member at a common
+time point therefore hold the same community there, and $\bar J$ takes only the values
+0 and 1 (as long as a group holds one community per time point). High matched
+similarities follow from the fixed window width; the informative part of the test is
+the correspondence: how many groups have a counterpart, and whether it is unique.
 
-| approach | $S_i$–$S_j$ | $\lvert T_{S_i} \rvert$ / $\lvert T_{S_j} \rvert$ | $\lvert T_{ij} \rvert$ | $\lvert \mathbb{D}_{S_i} \rvert$ / $\lvert \mathbb{D}_{S_j} \rvert$ | chronicles compared | mean chronicle length on $T_{ij}$ | size of $\mathbf{M}^{(ij)}$ | matched pairs | mean $\mathcal{J}_{ij}$ | median $\mathcal{J}_{ij}$ | ARI |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | 10 / 20 | 10 | 66 / 71 | 66 / 46 | 2.0 / 2.9 | 66 × 46 | 46 | 0.814 | 1.000 | 0.674 |
-| cumulative | 10–30 | 10 / 30 | 10 | 66 / 72 | 66 / 43 | 2.0 / 3.1 | 66 × 43 | 43 | 0.835 | 1.000 | 0.679 |
-| cumulative | 10–40 | 10 / 40 | 10 | 66 / 70 | 66 / 38 | 2.0 / 3.5 | 66 × 38 | 38 | 0.821 | 1.000 | 0.673 |
-| cumulative | 10–50 | 10 / 50 | 10 | 66 / 70 | 66 / 34 | 2.0 / 3.9 | 66 × 34 | 34 | 0.858 | 1.000 | 0.602 |
-| cumulative | 20–30 | 20 / 30 | 10 | 71 / 72 | 46 / 43 | 2.9 / 3.1 | 46 × 43 | 43 | 0.824 | 1.000 | 0.758 |
-| cumulative | 20–40 | 20 / 40 | 20 | 71 / 70 | 71 / 53 | 3.8 / 5.0 | 71 × 53 | 53 | 0.782 | 1.000 | 0.877 |
-| cumulative | 20–50 | 20 / 50 | 10 | 71 / 70 | 46 / 34 | 2.9 / 3.9 | 46 × 34 | 34 | 0.831 | 1.000 | 0.905 |
-| cumulative | 30–40 | 30 / 40 | 10 | 72 / 70 | 43 / 38 | 3.1 / 3.5 | 43 × 38 | 38 | 0.857 | 1.000 | 0.807 |
-| cumulative | 30–50 | 30 / 50 | 10 | 72 / 70 | 43 / 34 | 3.1 / 3.9 | 43 × 34 | 34 | 0.895 | 1.000 | 0.759 |
-| cumulative | 40–50 | 40 / 50 | 10 | 70 / 70 | 38 / 34 | 3.5 / 3.9 | 38 × 34 | 34 | 0.891 | 1.000 | 0.903 |
-| interval | 20–30 | 20 / 30 | 10 | 205 / 199 | 117 / 93 | 1.2 / 1.5 | 117 × 93 | 93 | 0.521 | 0.526 | 0.508 |
-| interval | 20–40 | 20 / 40 | 20 | 205 / 196 | 205 / 138 | 1.5 / 2.2 | 205 × 138 | 138 | 0.373 | 0.351 | 0.444 |
-| interval | 20–50 | 20 / 50 | 10 | 205 / 199 | 117 / 90 | 1.2 / 1.7 | 117 × 90 | 90 | 0.337 | 0.329 | 0.491 |
-| interval | 30–40 | 30 / 40 | 10 | 199 / 196 | 93 / 89 | 1.5 / 1.6 | 93 × 89 | 89 | 0.470 | 0.444 | 0.574 |
-| interval | 30–50 | 30 / 50 | 10 | 199 / 199 | 93 / 90 | 1.5 / 1.7 | 93 × 90 | 90 | 0.352 | 0.370 | 0.522 |
-| interval | 40–50 | 40 / 50 | 10 | 196 / 199 | 89 / 90 | 1.6 / 1.7 | 89 × 90 | 89 | 0.459 | 0.455 | 0.544 |
-| overlap | 10–20 | 10 / 20 | 10 | 110 / 112 | 110 / 83 | 1.3 / 1.7 | 110 × 83 | 83 | 0.390 | 0.395 | 0.411 |
-| overlap | 10–30 | 10 / 30 | 10 | 110 / 109 | 110 / 69 | 1.3 / 2.2 | 110 × 69 | 69 | 0.322 | 0.299 | 0.269 |
-| overlap | 10–40 | 10 / 40 | 10 | 110 / 109 | 110 / 65 | 1.3 / 2.3 | 110 × 65 | 65 | 0.247 | 0.227 | 0.275 |
-| overlap | 20–30 | 20 / 30 | 20 | 112 / 109 | 112 / 94 | 2.6 / 3.2 | 112 × 94 | 94 | 0.324 | 0.278 | 0.509 |
-| overlap | 20–40 | 20 / 40 | 20 | 112 / 109 | 112 / 81 | 2.6 / 3.6 | 112 × 81 | 81 | 0.267 | 0.220 | 0.520 |
-| overlap | 30–40 | 30 / 40 | 30 | 109 / 109 | 109 / 100 | 4.2 / 4.4 | 109 × 100 | 100 | 0.353 | 0.327 | 0.578 |
+### Results at $\theta^*$
 
-- $|T_{S_i}|$, $|T_{S_j}|$: number of time points (snapshots) of each configuration.
-- $|T_{ij}|$: number of common time points (for overlapping windows, paired nearest window ends).
-- $|\mathbb{D}_{S_i}|$, $|\mathbb{D}_{S_j}|$: number of dynamic groups at $\theta^*$.
-- chronicles compared: dynamic groups that exist at one or more common time points; the
-  others exist only between common time points and are excluded.
-- mean chronicle length on $T_{ij}$: average number of common time points at which a
-  compared group exists.
-- size of $\mathbf{M}^{(ij)}$: dimensions of the cross table; matched pairs $= \min(n_i, n_j)$.
+| approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups |
+|---|---|---|---|---|---|---|---|
+| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.94 | 94 % |
+| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 1.00 | 100 % |
+| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 1.00 | 0.97 | 97 % |
+| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.97 | 97 % |
+| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.92 | 92 % |
+| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 1.00 | 0.85 | 85 % |
+| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.92 | 92 % |
+| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.87 | 87 % |
+| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.86 | 86 % |
+| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.97 | 97 % |
+| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.99 | 99 % |
+| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.96 | 96 % |
+| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 1.00 | 100 % |
+| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.97 | 97 % |
+| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.96 | 96 % |
+| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.94 | 94 % |
+| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.95 | 96 % |
+| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.94 | 94 % |
+| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.95 | 96 % |
+| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.88 | 88 % |
 
-Share of matched pairs whose chronicles are identical on the common time points
-($\mathbf{M}_{k\pi^*(k)} \ge 0.99$), pooled over all pairs of configurations:
-cumulative 65 %, interval 3.6 %, overlapping 1.8 %.
+Share of matched pairs that are identical where they overlap ($\bar J \ge 0.99$),
+pooled over all pairs: cumulative 92 % (380 of 411), overlapping 96 % (693 of 725).
+Every matched pair is either identical or has no overlap at all ($\bar J = 0$; 31 and
+32 pairs): since the window at a common time point is the same in both configurations,
+the snapshot graphs, and hence the communities, are the same, so two groups that share
+a member at a common time point hold the same community there.
 
-### Final table: Jaccard thresholds and the communities they produce
+### One threshold for all snapshot counts
 
-The hypothesis is formulated for the thresholds $\theta^*_S$ that give every snapshot
-count the same number of dynamic groups $N^*$. For each pair of configurations
-$(S_i, \theta^*_{S_i})$ and $(S_j, \theta^*_{S_j})$ the table reports how well the
-resulting communities agree: the median and mean similarity of the one-to-one matched
-groups ($\mathcal{J}_{ij}$), the share of matched groups whose chronicles are
-identical on the common time points ($\bar{J} \ge 0.99$) and the ARI.
-
-**cumulative** (reference level $N^* = 70$ groups): $\theta^*_{10} = 0.867$, $\theta^*_{20} = 0.753$, $\theta^*_{30} = 0.564$, $\theta^*_{40} = 0.523$, $\theta^*_{50} = 0.433$
-
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (10, 0.867) | (20, 0.753) | 1.00 | 0.81 | 59 % | 0.67 |
-| (10, 0.867) | (30, 0.564) | 1.00 | 0.83 | 63 % | 0.68 |
-| (10, 0.867) | (40, 0.523) | 1.00 | 0.82 | 58 % | 0.67 |
-| (10, 0.867) | (50, 0.433) | 1.00 | 0.86 | 65 % | 0.60 |
-| (20, 0.753) | (30, 0.564) | 1.00 | 0.82 | 70 % | 0.76 |
-| (20, 0.753) | (40, 0.523) | 1.00 | 0.78 | 57 % | 0.88 |
-| (20, 0.753) | (50, 0.433) | 1.00 | 0.83 | 65 % | 0.91 |
-| (30, 0.564) | (40, 0.523) | 1.00 | 0.86 | 68 % | 0.81 |
-| (30, 0.564) | (50, 0.433) | 1.00 | 0.90 | 76 % | 0.76 |
-| (40, 0.523) | (50, 0.433) | 1.00 | 0.89 | 76 % | 0.90 |
-
-**interval** (reference level $N^* = 200$ groups): $\theta^*_{20} = 0.517$, $\theta^*_{30} = 0.321$, $\theta^*_{40} = 0.221$, $\theta^*_{50} = 0.106$
-
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (20, 0.517) | (30, 0.321) | 0.53 | 0.52 | 1 % | 0.51 |
-| (20, 0.517) | (40, 0.221) | 0.35 | 0.37 | 5 % | 0.44 |
-| (20, 0.517) | (50, 0.106) | 0.33 | 0.34 | 0 % | 0.49 |
-| (30, 0.321) | (40, 0.221) | 0.44 | 0.47 | 4 % | 0.57 |
-| (30, 0.321) | (50, 0.106) | 0.37 | 0.35 | 2 % | 0.52 |
-| (40, 0.221) | (50, 0.106) | 0.46 | 0.46 | 8 % | 0.54 |
-
-**overlap** (reference level $N^* = 110$ groups): $\theta^*_{10} = 0.793$, $\theta^*_{20} = 0.463$, $\theta^*_{30} = 0.316$, $\theta^*_{40} = 0.228$
-
-| $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|
-| (10, 0.793) | (20, 0.463) | 0.40 | 0.39 | 1 % | 0.41 |
-| (10, 0.793) | (30, 0.316) | 0.30 | 0.32 | 1 % | 0.27 |
-| (10, 0.793) | (40, 0.228) | 0.23 | 0.25 | 0 % | 0.28 |
-| (20, 0.463) | (30, 0.316) | 0.28 | 0.32 | 1 % | 0.51 |
-| (20, 0.463) | (40, 0.228) | 0.22 | 0.27 | 1 % | 0.52 |
-| (30, 0.316) | (40, 0.228) | 0.33 | 0.35 | 5 % | 0.58 |
-
-### Analysis
-
-The experiment tests the hypothesis at member level: for every pair of
-configurations, every dynamic group is compared with every dynamic group of the
-other configuration over the common time points. The thresholds used are the
-equal-count thresholds $\theta^*_S$, so the verdicts below hold **for this choice of
-threshold**.
-
-- **Cumulative: hypothesis supported.** In every one of the 10 pairs the median
-  matched similarity is 1.0, i.e. more than half of the comparable groups have an
-  exact counterpart with the same members at every common time point, and the cross
-  tables show a clean 1:1 diagonal. The mean matched similarity is 0.78 to 0.90 and
-  the ARI 0.60 to 0.91; agreement is lowest when $S = 10$ is involved
-  (ARI 0.60 to 0.68) and highest among the larger snapshot counts (e.g. 0.90 for
-  $40$–$50$, 0.91 for $20$–$50$).
-- This result is partly structural. A cumulative snapshot at time $t$ always covers
-  $[0, t]$, so at a common time point two configurations analyse the *same* graph,
-  and Louvain with a fixed seed returns identical static communities (verified for
-  all common time points). The only source of disagreement is the temporal
-  matching: whether the communities are chained into the same dynamic groups. Values
-  below 1 therefore reflect groups whose chain is broken at a different time
-  in one configuration, which the $J = 0$ rule for missing time points penalises.
-- **Interval: hypothesis not supported at $\theta^*$.** Median matched similarities are
-  0.33 to 0.53 and the ARI 0.44 to 0.57; only 3.6 % of the matched groups are identical.
-  The diagonal of the cross tables is visible but fades quickly. Here the windows
-  of different configurations have different lengths (e.g. 26 vs 10.5 days), so the
-  static communities themselves differ, and the equal-count thresholds $\theta^*$ do
-  not compensate for that.
-- **Overlapping: hypothesis not supported at $\theta^*$.** Median matched similarities
-  are 0.22 to 0.40 and the ARI 0.27 to 0.58. Agreement is weakest for pairs involving
-  $S = 10$ (ARI 0.27 to 0.41) and best for $30$–$40$ (ARI 0.58). Besides the
-  different window widths, time points are paired by nearest window end, so the
-  compared windows are additionally shifted by up to half a stride.
-- **Structure of the cross tables.** The cross tables are sparse, and their sparsity
-  pattern separates the approaches. Counting, for each group $D_k$, the groups $D'_l$
-  with $\mathbf{M}^{(ij)}_{kl} > 0$ (its *partners*): in the cumulative approach a group
-  has on average 1.00 to 1.11 partners, i.e. its members reappear in exactly one group of
-  the other configuration, which is a 1:1 correspondence. In the interval approach a
-  group has 4.1 to 5.0 partners and in the overlapping approach 4.3 to 6.9: its members
-  are spread over several groups of the other configuration. For a typical group
-  (around the median matched rank, $S = 20$ vs $S = 40$) the cumulative cross table is
-  a pure diagonal of 1.00, whereas the interval approach gives matched values of about
-  0.35 and the overlapping approach about 0.22, each with additional small overlaps
-  with other groups.
-- A large part of the groups cannot be compared at all: they exist only between
-  common time points (e.g. 36 of the 70 groups of $S = 50$ against $S = 10$ in the
-  cumulative approach). The comparison is therefore informative about the groups
-  that are present at the coarse time resolution, which include all long-lived groups.
-- **Conclusion.** With the equal-count Jaccard thresholds $\theta^*_S$, the cumulative
-  approach is robust to the number of snapshots: the same dynamic groups are recovered,
-  close to a 1:1 correspondence. For interval and overlapping windows these thresholds
-  give equal group counts but not the same groups. Since the hypothesis only requires
-  *some* well-chosen threshold, all threshold combinations are searched below.
-- **Limits of the evidence for the cumulative approach.** The hypothesis is supported
-  rather than proven: (i) part of the agreement is structural, since at common time
-  points both configurations analyse the same graph and only the temporal chaining is
-  tested; (ii) groups that exist only between common time points (up to 36 of 70) are
-  not compared; (iii) the correspondence is not perfect: 24 % to 43 % of the matched
-  groups differ in lifespan (mean $\mathcal{J}_{ij}$ 0.78 to 0.90), and 18 of 397
-  matched pairs share no members ($\bar{J} = 0$).
-
-### Joint search for the best-matching thresholds
-
-The equal-count thresholds $\theta^*_S$ are one particular choice. To test the
-hypothesis for *any* choice of threshold, both thresholds are varied jointly over
-$\theta_{S_i}, \theta_{S_j} \in \{0.10, 0.15, \ldots, 0.90\}$ (17 × 17 combinations per
-pair of configurations). For each combination the dynamic groups of both
-configurations are recomputed, the cross table is built and the groups are matched by
-linear sum assignment.
+Since the snapshot at a time point is the same for all $S$, the same threshold can be
+used for all $S$. For each $\theta \in \{0.10, 0.15, \dots, 0.90\}$ both configurations
+of a pair are matched with $\theta_i = \theta_j = \theta$.
 
 **Only dynamic groups with a history are compared.** A high threshold links almost no
 communities across snapshots, so every community becomes a group observed at a single
@@ -455,296 +343,230 @@ $n_j = |\mathbb{D}^{\,\ge 2}_{S_j}|$.
 **Agreement score.** A group left without a partner counts as 0:
 
 $$
-\mathrm{score}_{ij}(\theta_i, \theta_j) = \frac{1}{\max(n_i, n_j)} \sum_{k} \mathbf{M}^{(ij)}_{k, \pi^*(k)},
+\mathrm{score}_{ij}(\theta) = \frac{1}{\max(n_i, n_j)} \sum_{k} \mathbf{M}^{(ij)}_{k, \pi^*(k)},
 $$
 
 so that a threshold producing far fewer groups in one configuration cannot reach a
-high score by matching only its best groups. A combination is eligible only if
-$n_i \ge 10$ and $n_j \ge 10$; otherwise a single well-matched group would decide the
-result (the best scores are identical for any minimum between 5 and 15). The
-best-matching thresholds are
+high score by matching only its best groups. A threshold is eligible only if
+$n_i \ge 10$ and $n_j \ge 10$ for every pair; otherwise a single well-matched group
+would decide the result. The threshold of an approach is the one with the highest mean
+score over its 10 pairs,
 
 $$
-(\hat{\theta}_{S_i}, \hat{\theta}_{S_j}) = \arg\max_{\theta_i, \theta_j \,:\, n_i, n_j \ge 10} \; \mathrm{score}_{ij}(\theta_i, \theta_j).
+\hat{\theta} = \arg\max_{\theta} \frac{1}{|\mathcal{P}|} \sum_{(i, j) \in \mathcal{P}} \mathrm{score}_{ij}(\theta),
 $$
+
+where $\mathcal{P}$ is the set of compared pairs of snapshot counts.
 
 #### Results
 
-| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
-|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | (0.45, 0.35) | 18 / 17 | 0.94 | 1.00 | 0.98 | 33 % / 40 % |
-| cumulative | 10–30 | (0.70, 0.55) | 22 / 20 | 0.81 | 1.00 | 0.88 | 45 % / 41 % |
-| cumulative | 10–40 | (0.45, 0.10) | 18 / 16 | 0.80 | 1.00 | 0.98 | 33 % / 33 % |
-| cumulative | 10–50 | (0.80, 0.70) | 20 / 20 | 0.77 | 0.95 | 0.88 | 61 % / 52 % |
-| cumulative | 20–30 | (0.60, 0.65) | 23 / 23 | 0.84 | 1.00 | 0.74 | 45 % / 51 % |
-| cumulative | 20–40 | (0.35, 0.35) | 23 / 22 | 0.81 | 1.00 | 0.96 | 40 % / 31 % |
-| cumulative | 20–50 | (0.35, 0.45) | 17 / 16 | 0.76 | 1.00 | 0.96 | 40 % / 41 % |
-| cumulative | 30–40 | (0.30, 0.40) | 16 / 16 | 0.92 | 1.00 | 0.96 | 31 % / 34 % |
-| cumulative | 30–50 | (0.30, 0.10) | 16 / 16 | 0.89 | 1.00 | 0.97 | 31 % / 37 % |
-| cumulative | 40–50 | (0.40, 0.10) | 16 / 16 | 0.87 | 1.00 | 0.94 | 34 % / 37 % |
-| interval | 20–30 | (0.25, 0.25) | 26 / 25 | 0.50 | 0.56 | 0.60 | 50 % / 56 % |
-| interval | 20–40 | (0.35, 0.25) | 50 / 47 | 0.31 | 0.35 | 0.55 | 60 % / 60 % |
-| interval | 20–50 | (0.50, 0.35) | 17 / 17 | 0.38 | 0.41 | 0.54 | 75 % / 75 % |
-| interval | 30–40 | (0.45, 0.40) | 15 / 15 | 0.49 | 0.62 | 0.69 | 74 % / 76 % |
-| interval | 30–50 | (0.40, 0.35) | 17 / 17 | 0.46 | 0.56 | 0.62 | 69 % / 75 % |
-| interval | 40–50 | (0.40, 0.40) | 15 / 16 | 0.57 | 0.77 | 0.67 | 76 % / 79 % |
-| overlap | 10–20 | (0.10, 0.25) | 20 / 21 | 0.41 | 0.44 | 0.50 | 36 % / 32 % |
-| overlap | 10–30 | (0.65, 0.40) | 23 / 22 | 0.37 | 0.44 | 0.53 | 72 % / 42 % |
-| overlap | 10–40 | (0.45, 0.10) | 24 / 24 | 0.33 | 0.31 | 0.46 | 52 % / 37 % |
-| overlap | 20–30 | (0.80, 0.75) | 37 / 39 | 0.42 | 0.46 | 0.57 | 84 % / 82 % |
-| overlap | 20–40 | (0.45, 0.40) | 60 / 51 | 0.31 | 0.36 | 0.60 | 44 % / 53 % |
-| overlap | 30–40 | (0.70, 0.65) | 68 / 61 | 0.45 | 0.55 | 0.65 | 78 % / 77 % |
+Mean (minimum) score over the 10 pairs, per threshold:
 
-Single-snapshot groups: share of all dynamic groups of the configuration observed in
-one snapshot only (shown to confirm that the optimum still contains tracked groups).
+| $\theta$ | cumulative: mean score (min) | overlapping: mean score (min) |
+|---|---|---|
+| 0.10 | 0.84 (0.78) | 0.78 (0.68) |
+| 0.15 | 0.84 (0.78) | 0.78 (0.68) |
+| 0.20 | 0.84 (0.78) | 0.80 (0.71) |
+| 0.25 | 0.84 (0.78) | 0.81 (0.69) |
+| 0.30 | 0.83 (0.72) | 0.80 (0.71) |
+| 0.35 | 0.86 (0.79) | 0.79 (0.69) |
+| 0.40 | 0.84 (0.75) | 0.82 (0.70) |
+| 0.45 | 0.83 (0.71) | 0.81 (0.73) |
+| 0.50 | 0.84 (0.75) | 0.79 (0.69) |
+| 0.55 | 0.82 (0.73) | 0.79 (0.70) |
+| 0.60 | 0.82 (0.75) | 0.77 (0.62) |
+| 0.65 | 0.80 (0.69) | 0.70 (0.55) |
+| 0.70 | 0.80 (0.70) | 0.67 (0.50) |
+| 0.75 | 0.81 (0.73) | – (not eligible) |
+| 0.80 | 0.74 (0.57) | – (not eligible) |
+| 0.85 | 0.76 (0.61) | – (not eligible) |
+| 0.90 | 0.74 (0.60) | – (not eligible) |
 
-#### Analysis
+For overlapping windows $\theta \ge 0.75$ is not eligible (fewer than 10 compared groups
+in at least one pair).
 
-- **Cumulative: hypothesis supported for a broad range of thresholds.** The best scores
-  are 0.76–0.94, the median matched similarity is 1.0 (0.95 for $10$–$50$) and the ARI
-  0.74–0.99, comparing 16–23 groups with a history per configuration. The score is
-  flat around the optimum: for most pairs 22–90 of the 289 combinations lie within 0.05
-  of the best score, spanning thresholds from 0.10 to about 0.80. The exact threshold
-  therefore matters little; the cumulative approach reproduces the same dynamic groups
-  across snapshot counts for most reasonable thresholds.
-- **Interval: hypothesis not supported.** Even the best combination reaches only
-  0.31–0.57 (median matched similarity 0.36–0.77, ARI 0.54–0.69). No pair of thresholds
-  makes the dynamic groups of different snapshot counts agree.
-- **Overlapping: hypothesis not supported.** The best scores are 0.31–0.45 (median
-  matched similarity 0.31–0.55, ARI 0.46–0.65).
-- **Interpretation.** In the interval and overlapping approaches the window length
-  changes with the number of snapshots, so the static communities themselves differ,
-  and no choice of matching threshold compensates for this. In the cumulative approach
-  the snapshot at a common time point covers the same data regardless of the number of
-  snapshots, and the threshold only affects how communities are chained; with any
-  reasonable threshold the chains agree.
-- **Conclusion.** With a careful choice of the Jaccard threshold, the cumulative
-  approach is robust to the number of snapshots. The interval and overlapping
-  approaches are not: their dynamic groups depend on the snapshot resolution for every
-  threshold in $[0.10, 0.90]$.
-
-## Robustness to the number of snapshots at a fixed window width
-
-### Motivation
-
-In the previous experiment the number of snapshots $S$ also set the window width. The
-windows were stretched to cover the whole observation period $[0, T]$, $T = 526$ days:
-
-$$W_{\text{interval}}(S) = \frac{T}{S}, \qquad
-W_{\text{overlap}}(S) = \frac{T}{1 + (S - 1)(1 - f)} = \frac{2T}{S + 1} \quad (f = 0.5),$$
-
-and the cumulative window ending at $t$ is $[0, t]$. At a common time point the
-interval and overlapping configurations therefore detected communities on different
-graphs (e.g. $W \approx 96$ days for $S = 10$ and $W \approx 26$ days for $S = 40$ with
-overlapping windows), so the comparison mixed the temporal resolution (how often the
-network is observed) with the aggregation scale (how much interaction one snapshot
-contains). Only the cumulative approach was free of the second effect, and only the
-cumulative approach was robust. The experiment is therefore repeated with a window
-width that does not depend on $S$, as in the original construction of the snapshots
-($W = 50$ days, 50 % overlap).
-
-### Hypothesis
-
-For a fixed window width $W$, the number of snapshots does not affect the dynamic groups.
-
-### Configuration
-
-The window width is fixed to $W = 50$ days and only the stride changes,
-$\Delta_k = W / k$, $k = 1, \dots, 5$. The window ends are anchored at the end of the
-observation period,
-
-$$t^{(k)}_j = T - j\,\Delta_k, \qquad j = 0, 1, \dots, \qquad t^{(k)}_j \ge W,$$
-
-so the number of snapshots follows from the stride,
-
-$$S_k = \left\lfloor \frac{T - W}{\Delta_k} \right\rfloor + 1 = \left\lfloor \frac{476\,k}{50} \right\rfloor + 1 \in \{10, 20, 29, 39, 48\}.$$
-
-The window ending at $t$ is $[0, t]$ (cumulative) or $[t - W, t]$ (interval and
-overlapping; consecutive windows overlap by $1 - 1/k$). Interval windows do not
-overlap, so their stride equals their width and they exist only for $k = 1$; the
-interval configuration is identical to the overlapping configuration with $k = 1$.
-
-| $k$ | stride $\Delta_k$ (days) | window ends $t$ (days) | $S$ |
-|---|---|---|---|
-| 1 | 50 | 76, 126, …, 526 | 10 |
-| 2 | 25 | 51, 76, …, 526 | 20 |
-| 3 | 16.7 | 59.3, 76, …, 526 | 29 |
-| 4 | 12.5 | 51, 63.5, …, 526 | 39 |
-| 5 | 10 | 56, 66, …, 526 | 48 |
-
-Properties of this configuration:
-
-- Every window has the same width, so the snapshot graph at a time point $t$ is the
-  same for every $S$.
-- The common time points are exact: $T_{ij} = T_{S_i} \cap T_{S_j}$ contains the points
-  $t = 526 - 50\,m$ ($t = 76, 126, \dots, 526$, 10 points) and 20 points for
-  $(k_i, k_j) = (2, 4)$; no pairing of nearest window ends is needed.
-- Every configuration shares the last snapshot ($[476, 526]$, cumulative $[0, 526]$),
-  so the groups alive at the end of the period refer to the same graph.
-
-The evaluation is unchanged: number of groups as a function of $\theta$, thresholds
-$\theta^*_S$ at a common number of groups $N^*$, cross table of mean Jaccard values,
-linear sum assignment and ARI, the joint search over $(\theta_i, \theta_j)$, and in
-addition a single threshold $\theta$ for all $S$.
-
-### Results: number of groups and $\theta^*$
-
-The number of groups still increases with $\theta$ and with $S$, but the curves are
-closer together than with a variable window width. The reference levels $N^* = 70$
-(cumulative) and $N^* = 110$ (overlapping) are reached by all five snapshot counts;
-for interval (one curve) $N^* = 110$ is used.
-
-| approach | $N^*$ | $S$ | $\theta^*_S$ | groups | single-snapshot groups | groups with $\ell \ge 100$ days |
-|---|---|---|---|---|---|---|
-| cumulative | 70 | 10 | 0.879 | 66 | 43 | 15 |
-| cumulative | 70 | 20 | 0.753 | 71 | 34 | 14 |
-| cumulative | 70 | 29 | 0.650 | 70 | 36 | 17 |
-| cumulative | 70 | 39 | 0.559 | 70 | 27 | 19 |
-| cumulative | 70 | 48 | 0.516 | 72 | 32 | 15 |
-| interval | 110 | 10 | 0.637 | 110 | 93 | 11 |
-| overlap | 110 | 10 | 0.637 | 110 | 93 | 11 |
-| overlap | 110 | 20 | 0.480 | 110 | 50 | 11 |
-| overlap | 110 | 29 | 0.423 | 111 | 47 | 11 |
-| overlap | 110 | 39 | 0.401 | 112 | 45 | 15 |
-| overlap | 110 | 48 | 0.373 | 108 | 35 | 19 |
-
-### Results: comparison at $\theta^*$
-
-| approach | $(S_i, \theta^*_{S_i})$ | $(S_j, \theta^*_{S_j})$ | common time points | compared groups | median $\mathcal{J}_{ij}$ | mean $\mathcal{J}_{ij}$ | identical matched groups | ARI |
-|---|---|---|---|---|---|---|---|---|
-| cumulative | (10, 0.879) | (20, 0.753) | 10 | 66 / 48 | 1.00 | 0.77 | 58 % | 0.68 |
-| cumulative | (10, 0.879) | (29, 0.650) | 10 | 66 / 39 | 1.00 | 0.79 | 54 % | 0.71 |
-| cumulative | (10, 0.879) | (39, 0.559) | 10 | 66 / 39 | 0.80 | 0.74 | 49 % | 0.64 |
-| cumulative | (10, 0.879) | (48, 0.516) | 10 | 66 / 37 | 1.00 | 0.77 | 54 % | 0.54 |
-| cumulative | (20, 0.753) | (29, 0.650) | 10 | 48 / 39 | 1.00 | 0.80 | 64 % | 0.85 |
-| cumulative | (20, 0.753) | (39, 0.559) | 20 | 71 / 59 | 0.94 | 0.70 | 49 % | 0.89 |
-| cumulative | (20, 0.753) | (48, 0.516) | 10 | 48 / 37 | 1.00 | 0.78 | 62 % | 0.82 |
-| cumulative | (29, 0.650) | (39, 0.559) | 10 | 39 / 39 | 1.00 | 0.75 | 59 % | 0.84 |
-| cumulative | (29, 0.650) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.75 | 57 % | 0.80 |
-| cumulative | (39, 0.559) | (48, 0.516) | 10 | 39 / 37 | 1.00 | 0.85 | 76 % | 0.81 |
-| overlap | (10, 0.637) | (20, 0.480) | 10 | 110 / 83 | 1.00 | 0.84 | 70 % | 0.63 |
-| overlap | (10, 0.637) | (29, 0.423) | 10 | 110 / 75 | 1.00 | 0.78 | 61 % | 0.57 |
-| overlap | (10, 0.637) | (39, 0.401) | 10 | 110 / 67 | 1.00 | 0.78 | 61 % | 0.53 |
-| overlap | (10, 0.637) | (48, 0.373) | 10 | 110 / 67 | 1.00 | 0.73 | 57 % | 0.52 |
-| overlap | (20, 0.480) | (29, 0.423) | 10 | 83 / 75 | 1.00 | 0.89 | 79 % | 0.88 |
-| overlap | (20, 0.480) | (39, 0.401) | 20 | 110 / 90 | 1.00 | 0.81 | 63 % | 0.85 |
-| overlap | (20, 0.480) | (48, 0.373) | 10 | 83 / 67 | 1.00 | 0.84 | 67 % | 0.79 |
-| overlap | (29, 0.423) | (39, 0.401) | 10 | 75 / 67 | 1.00 | 0.82 | 69 % | 0.91 |
-| overlap | (29, 0.423) | (48, 0.373) | 10 | 75 / 67 | 1.00 | 0.83 | 66 % | 0.86 |
-| overlap | (39, 0.401) | (48, 0.373) | 10 | 67 / 67 | 1.00 | 0.76 | 63 % | 0.86 |
-
-Share of matched pairs whose chronicles are identical on the common time points,
-pooled over all pairs: cumulative 58 %, overlapping 66 % (previous configuration:
-65 %, 1.8 %).
-
-### Results: joint search for the best-matching thresholds
-
-| approach | $S_i$–$S_j$ | $(\hat{\theta}_{S_i}, \hat{\theta}_{S_j})$ | compared groups $n_i / n_j$ | best score | median $\mathcal{J}_{ij}$ | ARI | single-snapshot groups ($S_i$ / $S_j$) |
-|---|---|---|---|---|---|---|---|
-| cumulative | 10–20 | (0.40, 0.25) | 17 / 17 | 0.91 | 1.00 | 0.99 | 23 % / 30 % |
-| cumulative | 10–29 | (0.75, 0.65) | 22 / 22 | 0.87 | 1.00 | 0.94 | 45 % / 51 % |
-| cumulative | 10–39 | (0.50, 0.10) | 17 / 16 | 0.83 | 1.00 | 0.97 | 26 % / 25 % |
-| cumulative | 10–48 | (0.40, 0.35) | 17 / 15 | 0.76 | 1.00 | 0.94 | 23 % / 41 % |
-| cumulative | 20–29 | (0.55, 0.60) | 20 / 21 | 0.78 | 1.00 | 0.76 | 38 % / 52 % |
-| cumulative | 20–39 | (0.50, 0.40) | 23 / 22 | 0.81 | 1.00 | 0.95 | 38 % / 33 % |
-| cumulative | 20–48 | (0.25, 0.35) | 17 / 15 | 0.85 | 1.00 | 0.95 | 30 % / 41 % |
-| cumulative | 29–39 | (0.60, 0.55) | 21 / 20 | 0.78 | 1.00 | 0.79 | 52 % / 40 % |
-| cumulative | 29–48 | (0.35, 0.35) | 19 / 15 | 0.69 | 1.00 | 0.78 | 45 % / 41 % |
-| cumulative | 39–48 | (0.45, 0.50) | 18 / 16 | 0.87 | 1.00 | 0.97 | 32 % / 44 % |
-| overlap | 10–20 | (0.70, 0.80) | 12 / 11 | 0.72 | 1.00 | 0.94 | 90 % / 83 % |
-| overlap | 10–29 | (0.30, 0.30) | 23 / 23 | 0.71 | 0.80 | 0.83 | 51 % / 23 % |
-| overlap | 10–39 | (0.65, 0.75) | 16 / 17 | 0.65 | 0.67 | 0.89 | 86 % / 72 % |
-| overlap | 10–48 | (0.40, 0.30) | 25 / 26 | 0.63 | 0.67 | 0.77 | 61 % / 30 % |
-| overlap | 20–29 | (0.70, 0.65) | 17 / 17 | 0.80 | 1.00 | 0.85 | 76 % / 64 % |
-| overlap | 20–39 | (0.55, 0.60) | 59 / 54 | 0.81 | 1.00 | 0.95 | 56 % / 61 % |
-| overlap | 20–48 | (0.55, 0.55) | 24 / 23 | 0.78 | 1.00 | 0.95 | 56 % / 52 % |
-| overlap | 29–39 | (0.60, 0.60) | 18 / 18 | 0.83 | 1.00 | 0.96 | 58 % / 61 % |
-| overlap | 29–48 | (0.45, 0.45) | 26 / 26 | 0.73 | 1.00 | 0.92 | 43 % / 43 % |
-| overlap | 39–48 | (0.35, 0.25) | 27 / 27 | 0.76 | 1.00 | 0.87 | 34 % / 28 % |
-
-### Results: one threshold for all snapshot counts
-
-Mean (minimum) score and mean ARI over the 10 pairs, per threshold:
-
-| $\theta$ | cumulative: mean score (min) | cumulative: mean ARI | overlapping: mean score (min) | overlapping: mean ARI |
-|---|---|---|---|---|
-| 0.10 | 0.75 (0.59) | 0.88 | 0.56 (0.43) | 0.79 |
-| 0.20 | 0.75 (0.59) | 0.88 | 0.57 (0.46) | 0.79 |
-| 0.30 | 0.76 (0.59) | 0.88 | 0.59 (0.49) | 0.81 |
-| 0.35 | 0.79 (0.69) | 0.89 | 0.62 (0.48) | 0.85 |
-| 0.40 | 0.78 (0.65) | 0.90 | 0.66 (0.52) | 0.88 |
-| 0.45 | 0.75 (0.60) | 0.89 | 0.69 (0.56) | 0.89 |
-| 0.50 | 0.77 (0.64) | 0.90 | 0.67 (0.55) | 0.87 |
-| 0.55 | 0.74 (0.64) | 0.86 | 0.69 (0.55) | 0.92 |
-| 0.60 | 0.71 (0.63) | 0.82 | 0.65 (0.43) | 0.91 |
-| 0.70 | 0.67 (0.57) | 0.83 | 0.56 (0.42) | 0.86 |
-
-The highest mean score is reached at $\theta = 0.35$ for the cumulative approach (0.79,
-minimum 0.69) and at $\theta = 0.55$ for overlapping windows (0.69, minimum 0.55; 0.69 at
-$\theta = 0.45$ with minimum 0.56).
+The highest mean score is reached at $\theta = 0.35$ for the cumulative approach (0.86,
+minimum 0.79) and at $\theta = 0.40$ for overlapping windows (0.82, minimum 0.70; 0.81 at
+$\theta = 0.45$ with minimum 0.73). The maximum is flat: the mean score stays within
+0.82–0.86 for $\theta \in [0.10, 0.60]$ (cumulative) and within 0.78–0.82 for
+$\theta \in [0.10, 0.55]$ (overlapping), so $\hat\theta$ is a representative value of a
+stable range, not a sharp optimum. The best threshold is only 0.01–0.03 above
+its neighbours, too little to prefer one threshold over another.
 
 Cumulative, $\theta = 0.35$:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.91 | 0.98 |
-| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.75 | 0.80 |
-| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.81 | 0.95 |
-| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.76 | 0.94 |
-| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.77 | 0.81 |
-| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 0.97 | 0.80 | 0.96 |
-| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.85 | 0.95 |
-| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.73 | 0.77 |
-| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.69 | 0.78 |
-| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.86 | 0.92 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score |
+|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 21 / 35 | 17 / 17 | 1.00 | 0.94 |
+| (1, 3) | 10 / 29 | 10 | 21 / 42 | 17 / 19 | 1.00 | 0.84 |
+| (1, 4) | 10 / 39 | 10 | 21 / 49 | 17 / 17 | 1.00 | 0.88 |
+| (1, 5) | 10 / 48 | 10 | 21 / 59 | 17 / 15 | 1.00 | 0.82 |
+| (2, 3) | 20 / 29 | 10 | 35 / 42 | 17 / 19 | 1.00 | 0.84 |
+| (2, 4) | 20 / 39 | 20 | 35 / 49 | 23 / 22 | 1.00 | 0.87 |
+| (2, 5) | 20 / 48 | 10 | 35 / 59 | 17 / 15 | 1.00 | 0.88 |
+| (3, 4) | 29 / 39 | 10 | 42 / 49 | 19 / 17 | 1.00 | 0.84 |
+| (3, 5) | 29 / 48 | 10 | 42 / 59 | 19 / 15 | 1.00 | 0.79 |
+| (4, 5) | 39 / 48 | 10 | 49 / 59 | 17 / 15 | 1.00 | 0.88 |
 
-Overlapping windows, $\theta = 0.55$:
+Overlapping windows, $\theta = 0.40$:
 
-| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score | ARI |
-|---|---|---|---|---|---|---|---|
-| (1, 2) | 10 / 20 | 10 | 94 / 134 | 22 / 24 | 0.88 | 0.65 | 0.90 |
-| (1, 3) | 10 / 29 | 10 | 94 / 166 | 22 / 23 | 0.71 | 0.56 | 0.89 |
-| (1, 4) | 10 / 39 | 10 | 94 / 195 | 22 / 23 | 0.88 | 0.62 | 0.90 |
-| (1, 5) | 10 / 48 | 10 | 94 / 215 | 22 / 23 | 0.69 | 0.55 | 0.86 |
-| (2, 3) | 20 / 29 | 10 | 134 / 166 | 24 / 23 | 1.00 | 0.72 | 0.94 |
-| (2, 4) | 20 / 39 | 20 | 134 / 195 | 59 / 56 | 1.00 | 0.80 | 0.96 |
-| (2, 5) | 20 / 48 | 10 | 134 / 215 | 24 / 23 | 1.00 | 0.78 | 0.95 |
-| (3, 4) | 29 / 39 | 10 | 166 / 195 | 23 / 23 | 1.00 | 0.80 | 0.94 |
-| (3, 5) | 29 / 48 | 10 | 166 / 215 | 23 / 23 | 1.00 | 0.71 | 0.96 |
-| (4, 5) | 39 / 48 | 10 | 195 / 215 | 23 / 23 | 1.00 | 0.73 | 0.94 |
+| $(k_i, k_j)$ | $S_i$ / $S_j$ | common time points | groups $S_i$ / $S_j$ | compared groups $n_i$ / $n_j$ | median $\mathcal{J}_{ij}$ | score |
+|---|---|---|---|---|---|---|
+| (1, 2) | 10 / 20 | 10 | 64 / 85 | 25 / 29 | 1.00 | 0.83 |
+| (1, 3) | 10 / 29 | 10 | 64 / 100 | 25 / 27 | 1.00 | 0.81 |
+| (1, 4) | 10 / 39 | 10 | 64 / 109 | 25 / 30 | 1.00 | 0.70 |
+| (1, 5) | 10 / 48 | 10 | 64 / 123 | 25 / 26 | 1.00 | 0.85 |
+| (2, 3) | 20 / 29 | 10 | 85 / 100 | 29 / 27 | 1.00 | 0.86 |
+| (2, 4) | 20 / 39 | 20 | 85 / 109 | 54 / 47 | 1.00 | 0.83 |
+| (2, 5) | 20 / 48 | 10 | 85 / 123 | 29 / 26 | 1.00 | 0.79 |
+| (3, 4) | 29 / 39 | 10 | 100 / 109 | 27 / 30 | 1.00 | 0.83 |
+| (3, 5) | 29 / 48 | 10 | 100 / 123 | 27 / 26 | 1.00 | 0.85 |
+| (4, 5) | 39 / 48 | 10 | 109 / 123 | 30 / 26 | 1.00 | 0.83 |
+
+### One-to-one correspondence
+
+**Linear sum assignment.** The groups are matched one to one by the linear sum assignment
+on $\mathbf{M}^{(ij)}$ (Hungarian algorithm); with $I_{ij}$ the number of assigned pairs
+with $\bar J \ge 0.99$, the share of identical pairs measures whether matched groups have
+the same members. The assignment always returns a one-to-one matching, however, so it
+cannot show whether the correspondence *is* one-to-one.
+
+**Maximum alignment.** Every group chooses its best partner without this constraint,
+
+$$
+b_i(k) = \arg\max_l \mathbf{M}^{(ij)}_{kl}, \qquad b_j(l) = \arg\max_k \mathbf{M}^{(ij)}_{kl}.
+$$
+
+$(k, l)$ is a mutual best match if $l$ is the only best partner of $k$ and $k$ the only
+best partner of $l$, with $\mathbf{M}^{(ij)}_{kl} > 0$. Every group is classified as
+
+- **1:1:** part of a mutual best match;
+- **split / merge:** several best partners with the same $\bar J$ (a tie), or a best
+  partner that chooses another group, i.e. the group corresponds to several groups of
+  the other configuration;
+- **no partner:** its row (column) of $\mathbf{M}^{(ij)}$ is zero.
+
+Since $\bar J$ is computed where both groups exist, a group that the other configuration
+cuts into consecutive pieces has $\bar J = 1$ with every piece; such groups are split /
+merge, not 1:1.
+
+**Shares.** For the configuration with fewer compared groups ($\min(n_i, n_j)$) and the
+one with more ($\max(n_i, n_j)$),
+
+$$
+p_{ij} = \frac{|\{\text{groups of the class}\}|}{\min(n_i, n_j)} \;\text{ or }\; \frac{|\{\text{groups of the class}\}|}{\max(n_i, n_j)}, \qquad
+\bar p = \frac{1}{|\mathcal P|} \sum_{(i,j) \in \mathcal P} p_{ij},
+$$
+
+and analogously $I_{ij} / \min(n_i, n_j)$ and $I_{ij} / \max(n_i, n_j)$ for the
+assignment. At $\theta^*$ all groups present at a common time point are compared, at
+$\hat\theta$ the groups present at two or more common time points.
+
+#### Results
+
+Configuration with fewer compared groups, mean (minimum–maximum) over the 10 pairs:
+
+| approach | threshold | Hungarian: identical pairs | 1:1 (mutual best match) | split / merge | no partner |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 93 % (85–100 %) | 58 % (49–76 %) | 42 % (24–51 %) | 0 % |
+| overlap | $\theta^*$ | 96 % (88–100 %) | 66 % (57–79 %) | 34 % (21–43 %) | 0 % |
+| cumulative | $\hat\theta = 0.35$ | 95 % (88–100 %) | 80 % (71–93 %) | 17 % (6–29 %) | 3 % (0–12 %) |
+| overlap | $\hat\theta = 0.40$ | 91 % (84–96 %) | 68 % (48–81 %) | 25 % (15–40 %) | 7 % (2–12 %) |
+
+Configuration with more compared groups:
+
+| approach | threshold | Hungarian: identical pairs | 1:1 (mutual best match) | split / merge | no partner |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 72 % (55–92 %) | 46 % (29–72 %) | 54 % (28–71 %) | 0 % |
+| overlap | $\theta^*$ | 76 % (59–88 %) | 53 % (34–71 %) | 47 % (29–66 %) | 0 % |
+| cumulative | $\hat\theta = 0.35$ | 86 % (79–94 %) | 73 % (63–88 %) | 22 % (12–37 %) | 6 % (0–13 %) |
+| overlap | $\hat\theta = 0.40$ | 82 % (70–86 %) | 61 % (40–70 %) | 31 % (17–50 %) | 8 % (3–13 %) |
+
+Summed over the 10 pairs:
+
+| approach | threshold | Hungarian pairs (identical) | mutual best matches | split / merge (smaller / larger configuration) | no partner (smaller / larger) |
+|---|---|---|---|---|---|
+| cumulative | $\theta^*$ | 411 (380) | 237 | 174 / 311 | 0 / 0 |
+| overlap | $\theta^*$ | 725 (693) | 476 | 249 / 457 | 0 / 0 |
+| cumulative | $\hat\theta$ | 167 (158) | 133 | 29 / 40 | 5 / 11 |
+| overlap | $\hat\theta$ | 279 (255) | 190 | 70 / 97 | 19 / 24 |
+
+- **Matched groups have the same members.** 91–96 % of the assigned pairs are
+  identical where both groups exist; this follows from the identical snapshot graphs
+  at the common time points and is not evidence of a one-to-one correspondence.
+- **Every mutual best match is identical and is a pair of the assignment.** The two
+  methods agree wherever the best partner is unambiguous.
+- **The assignment overstates the one-to-one correspondence.** The share of identical
+  assigned pairs exceeds the share of 1:1 groups by 15–35 percentage points (cumulative
+  93 % vs 58 % at $\theta^*$, 95 % vs 80 % at $\hat\theta$; overlapping 96 % vs 66 % and
+  91 % vs 68 %): these groups are paired with one of several identical partners.
+- **The correspondence is one-to-one for 58–80 % of the groups** of the smaller
+  configuration (46–73 % of the larger). Almost all others are split / merge: they are
+  identical to several groups of the other configuration, i.e. the same members are
+  cut into different pieces in time. Groups without any partner are rare (0–7 %).
+- **One threshold for all $S$ is closer to one-to-one** (cumulative 80 %, overlapping
+  68 %) than the equal-count thresholds $\theta^*$ (58 %, 66 %), where the configuration
+  with $S = 10$ contains many groups observed at a single time point.
 
 ### Analysis
 
-- **With a fixed window width the overlapping approach is robust to the number of
-  snapshots.** At $\theta^*$ the median matched Jaccard is 1.00 for every pair (previous
-  configuration: 0.22–0.40), 57–79 % of the matched groups are identical on the common
-  time points (previously 0–5 %) and the ARI is 0.52–0.90 (previously 0.27–0.58). The
-  joint search reaches scores of 0.63–0.83 (previously 0.31–0.45).
-- **The cumulative approach stays robust.** Median matched Jaccard 0.80–1.00 at
-  $\theta^*$, joint-search scores 0.69–0.91 and ARI 0.76–0.99, as in the previous
-  configuration, where its graphs were already independent of $S$.
-- **The earlier failure was caused by the window width.** Once the graph at a time
-  point no longer depends on $S$, the two approaches behave alike: the remaining
-  differences come only from how communities are linked between the common time points.
-- **A single threshold works for all resolutions.** With one $\theta$ for all $S$ the
-  scores are close to those of the joint search (cumulative 0.79 vs 0.82 on average,
-  overlapping 0.69 vs 0.74), so no calibration of $\theta$ per snapshot count is needed;
-  the cumulative approach is insensitive to $\theta$ over $0.10$–$0.55$ (mean score
-  0.75–0.79), the overlapping approach over $0.40$–$0.55$ (0.66–0.69).
-- **Agreement decreases with the difference in resolution.** The lowest scores are
-  those of $S = 10$ against the finer resolutions (overlapping at $\theta = 0.55$: 0.65 against
-  $S = 20$, 0.55 against $S = 48$): between two common time points a finer resolution
-  observes more intermediate windows, at which a group can split or end. The number of
-  groups at a fixed $\theta$ still grows with $S$ through these short-lived intermediate
-  groups.
+- **The members of matched groups are the same by construction.** The snapshot graph
+  at a common time point does not depend on $S$, so the same communities are detected
+  there and $\bar J$ is either 1 or 0. The median matched Jaccard of 1.00 and the
+  85–100 % identical matched groups at $\theta^*$ (cumulative and overlapping) confirm
+  this; they do not depend on the threshold.
+- **What the number of snapshots changes is how communities are linked over time.**
+  All disagreement comes from groups without a counterpart (unmatched, or matched with
+  $\bar J = 0$) and from groups that correspond to several groups of the other
+  configuration.
+- **The correspondence is one-to-one for 58–80 % of the groups** of the configuration
+  with fewer compared groups (46–73 % of the one with more). Most others are split or
+  merged differently in time; on average 0–8 % have no partner.
+- **Score below 1 reflects groups without a counterpart.** With $\bar J \in \{0, 1\}$
+  the score is the share of groups of the larger set that have an identical
+  counterpart (0.70–0.94 at $\hat\theta$).
+- **No calibration of the threshold per snapshot count is needed.** With one $\theta$
+  for all $S$ the mean score is 0.86 (cumulative, $\theta = 0.35$) and 0.82
+  (overlapping, $\theta = 0.40$), and it is stable over $0.10$–$0.60$ (cumulative,
+  0.82–0.86) and $0.10$–$0.55$ (overlapping, 0.78–0.82). The one-to-one share is higher
+  than at the equal-count thresholds $\theta^*$ (cumulative 80 % vs 58 %, overlapping
+  68 % vs 66 %), which force the configuration with $S = 10$ to a high threshold and
+  many single-snapshot groups. Equal group counts are therefore not required for
+  comparable groups; the number of groups at a fixed $\theta$ still grows with $S$
+  through short-lived groups between the common time points.
 - **Caveats.** Groups that exist only between common time points cannot be compared
-  (up to 45 of 112 groups at $\theta^*$); the interval approach can only be observed at
-  one resolution, since its window width equals its stride, so for interval windows the
-  number of snapshots and the window width cannot be separated.
-- **Conclusion.** With a fixed window width the hypothesis holds for the cumulative and
-  the overlapping construction: the number of snapshots changes the temporal resolution
-  but not the dynamic groups observed at the common time points. The sensitivity found
-  in the previous experiment is a sensitivity to the window width.
+  (up to 45 of 112 groups at $\theta^*$). $\bar J$ ignores how long two groups coexist,
+  so lifetimes enter only through the split / merge and no-partner shares. For
+  overlapping windows the overlap of consecutive windows grows with $S$, so the effect
+  of the temporal resolution cannot be separated from the effect of the overlap. The
+  interval approach can only be observed at one resolution, since its window width
+  equals its stride. All results use one window width ($W = 50$ days) and one Louvain
+  run per snapshot.
+- **Conclusion.** With a fixed window width the hypothesis is partly supported for the
+  cumulative and the overlapping construction. The first criterion holds by
+  construction: groups matched at the common time points have the same members. The
+  second holds for 58–80 % of the groups: they correspond one to one, while the others
+  are cut into different pieces in time. The number of snapshots therefore affects the
+  lifetimes of the dynamic groups, not their members.
+
+## Motivation for the fixed window width
+
+In a first version of the analysis the number of snapshots also set the window width:
+the windows were stretched to cover the whole period,
+
+$$
+W_{\text{interval}}(S) = \frac{T}{S}, \qquad
+W_{\text{overlap}}(S) = \frac{T}{1 + (S - 1)(1 - f)} = \frac{2T}{S + 1} \quad (f = 0.5),
+$$
+
+so that at a common time point two configurations detected communities on different
+graphs (e.g. $W \approx 96$ days for $S = 10$ and $W \approx 26$ days for $S = 40$ with
+overlapping windows), and window ends of overlapping windows had to be paired with the
+nearest window end of the other configuration. The comparison then mixed the temporal
+resolution with the aggregation scale: only the cumulative approach, whose window
+$[0, t]$ does not depend on $S$, produced matching groups, while the matched groups of
+the interval and the overlapping approach had different members. The window width was
+therefore fixed, so that the number of snapshots changes the temporal resolution only.
 
 ## Robustness to the community detection algorithm
 
@@ -757,8 +579,10 @@ dynamic groups are built, only the static communities of each snapshot are compa
 
 ### Method
 
-The number of snapshots is fixed at $S = 20$ for all three approaches. For every
-snapshot $t \in T_{S}$ the weighted snapshot graph $G_t$ is partitioned by both
+The snapshots are the fixed 50-day windows defined above with stride
+$\Delta = 25$ days ($k = 2$, $S = 20$) for the cumulative and overlapping approaches and
+$\Delta = 50$ days ($k = 1$, $S = 10$) for the interval approach, whose stride equals its
+width. For every snapshot $t \in T_{S}$ the weighted snapshot graph $G_t$ is partitioned by both
 algorithms with the same settings (edge weights = number of e-mails, resolution 1,
 communities with fewer than 3 members discarded):
 
@@ -780,38 +604,41 @@ $$
 $$
 
 giving $\min(m, m')$ matched pairs per snapshot and the list of their Jaccard values
-$\{\mathbf{A}^{(t)}_{k, \pi^*_t(k)}\}$. These lists are pooled over the 20 snapshots of
+$\{\mathbf{A}^{(t)}_{k, \pi^*_t(k)}\}$. These lists are pooled over the snapshots of
 each approach. A high correspondence (values close to 1, a 1:1 mapping) means the
 approach is robust to the choice of algorithm. As before, the number of *partners* of
 a community $C_k$ is the number of communities $C'_l$ with $\mathbf{A}^{(t)}_{kl} > 0$.
 
 ### Results
 
-| approach | communities Louvain / greedy | matched pairs | mean $J$ | median $J$ | $J \ge 0.5$ | identical ($J \ge 0.99$) | partners per community | mean $J$ per snapshot (min–max) | mean $J$, size ≥ 20 / < 20 |
-|---|---|---|---|---|---|---|---|---|---|
-| cumulative | 267 / 269 | 258 | 0.71 | 0.79 | 78 % | 14 % | 2.68 | 0.55–0.83 | 0.69 / 0.83 |
-| interval | 301 / 300 | 287 | 0.75 | 0.83 | 83 % | 17 % | 2.53 | 0.62–0.88 | 0.72 / 0.94 |
-| overlap | 289 / 285 | 280 | 0.72 | 0.78 | 79 % | 16 % | 2.55 | 0.54–0.87 | 0.70 / 0.85 |
+| approach | snapshots | communities Louvain / greedy | matched pairs | mean $J$ | median $J$ | $J \ge 0.5$ | identical ($J \ge 0.99$) | partners per community | mean $J$ per snapshot (min–max) | mean $J$, size ≥ 20 / < 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| cumulative | 20 | 263 / 265 | 254 | 0.71 | 0.80 | 76 % | 13 % | 2.61 | 0.55–0.85 | 0.69 / 0.85 |
+| interval | 10 | 146 / 144 | 139 | 0.72 | 0.78 | 79 % | 16 % | 2.53 | 0.61–0.82 | 0.71 / 0.80 |
+| overlap | 20 | 286 / 287 | 276 | 0.74 | 0.81 | 81 % | 16 % | 2.54 | 0.61–0.87 | 0.72 / 0.85 |
 
 ### Analysis
 
-- **Both algorithms find almost the same number of communities** (267 vs 269, 301 vs
-  300, 289 vs 285 over the 20 snapshots), and nearly every community has a matched
-  counterpart.
+- **Both algorithms find almost the same number of communities** (263 vs 265, 146 vs
+  144, 286 vs 287), and nearly every community has a matched counterpart.
 - **The correspondence is clear but not exact.** The median matched Jaccard is
-  0.78–0.83 and 78–83 % of the matched pairs have $J \ge 0.5$, but only 14–17 % are
-  identical. Each Louvain community shares members with 2.5–2.7 greedy communities on
+  0.78–0.81 and 76–81 % of the matched pairs have $J \ge 0.5$, i.e. the two communities
+  share the majority of their members, but only 13–16 % are identical. Each Louvain community shares members with 2.5–2.6 greedy communities on
   average: the core of a community is found by both algorithms, while members at the
   boundary are assigned differently.
 - **Large communities differ more.** Communities with at least 20 members reach a mean
-  matched Jaccard of 0.69–0.72, smaller ones 0.83–0.94. The algorithms agree on small,
+  matched Jaccard of 0.69–0.72, smaller ones 0.80–0.85. The algorithms agree on small,
   well-separated communities and draw the boundaries of large communities differently.
 - **The three approaches are affected equally.** The mean matched Jaccard is 0.71
-  (cumulative), 0.75 (interval) and 0.72 (overlapping), with similar ranges over time
-  (0.54–0.88 per snapshot). The choice of algorithm does not favour one snapshot
+  (cumulative), 0.72 (interval) and 0.74 (overlapping), with similar ranges over time
+  (0.55–0.87 per snapshot). The choice of algorithm does not favour one snapshot
   construction over another.
-- **Conclusion.** The communities correspond largely 1:1 between Louvain and greedy
-  modularity, so the identified community structure is broadly robust to the
-  algorithm. The boundaries of large communities, however, depend on the algorithm
-  (about 30 % of their members differ), so results that rely on exact memberships
-  should be read with this variability in mind.
+- **Caveats.** Louvain is a randomised algorithm and is run once per snapshot; how much
+  two Louvain runs differ from each other was not measured, so the values have no
+  reference level. The comparison uses one snapshot count per approach and the default
+  resolution.
+- **Conclusion.** Most communities (76–81 %) have a clear counterpart under the other
+  algorithm, so the identified community structure is broadly robust to the algorithm.
+  The boundaries of large communities, however, depend on the algorithm (mean matched
+  Jaccard 0.69–0.72 for communities with at least 20 members), so results that rely on
+  exact memberships should be read with this variability in mind.

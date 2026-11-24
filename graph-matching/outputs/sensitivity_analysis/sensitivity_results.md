@@ -7,8 +7,16 @@ Jaccard similarity is at least the threshold).
 
 - Data: `number_of_groups.csv` (written by `scripts/config_sensitivity.py`).
 - Figures: `scripts/sensitivity_plots.py` -> `figures/`
-- Grid: approaches cumulative / interval / overlap, snapshot counts 10, 20, 30,
-  40, 50, Jaccard thresholds 0.10 to 0.90 in steps of 0.05.
+- Grid: approaches cumulative / interval / overlap, Jaccard thresholds 0.10 to 0.90 in
+  steps of 0.05. Snapshot counts: 10, 20, 29, 39, 48 (fixed 50-day windows, current);
+  10, 20, 30, 40, 50 in the earlier configuration.
+
+**Which sections are current.** The first three sections ("Number of groups vs Jaccard
+threshold", "The dynamic groups at the intersection thresholds", "Community comparison
+across snapshot counts") describe the earlier configuration, in which the window width
+depended on the number of snapshots. They are kept as a record and are superseded by
+the section "Fixed window width: robustness to the number of snapshots". The algorithm
+comparison uses the fixed windows.
 
 ## Number of groups vs Jaccard threshold, one line per snapshot count
 
@@ -316,20 +324,12 @@ snapshot by snapshot (no dynamic groups, no threshold).
 
 ### Summary
 
-| approach | window width | identical matched groups | matched groups with J̄ ≥ 0.5 |
-|---|---|---|---|
-| cumulative | depends on S | 65 % | 91 % |
-| cumulative | 50 days | 58 % | 85 % |
-| interval | depends on S | 4 % | 35 % |
-| interval | 50 days | – (one snapshot count) | – |
-| overlap | depends on S | 2 % | 23 % |
-| overlap | 50 days | 66 % | 88 % |
-
-Matched pairs at θ*, pooled over all pairs of snapshot counts; both rows use the earlier
-mean Jaccard (time points where only one group exists count as 0).
-
-![window width summary](figures/window_width_summary.png)
-
+With the earlier windows the width depended on S, so two configurations detected
+communities on different graphs at a common time point; only the cumulative approach,
+whose window [0, t] does not depend on S, gave matching groups (identical matched groups
+at θ*, earlier mean Jaccard: cumulative 65 %, interval 4 %, overlap 2 %). The comparison
+table and figure of the two setups were removed: their fixed-window rows used the
+earlier mean Jaccard and no longer match the results below.
 
 Rerun of the sensitivity analysis with a fixed window width W = 50 days. The stride is
 Δ = W/k (k = 1…5) and the window ends are anchored at the end of the period,
@@ -508,16 +508,22 @@ assignment pairs as identical although they are split / merge.
 
 ### Observations
 
-- Overlapping is robust: median matched Jaccard 1.00 at θ* for every pair, identical
-  matched groups 88–100 %.
-- Cumulative stays robust (median 1.00 at θ*, identical matched groups 85–100 %).
-- Matched groups are either identical or do not overlap (J̄ ∈ {0, 1}); disagreement
-  comes only from groups without an identical counterpart.
+- Median matched Jaccard 1.00 at θ* for every pair; identical matched groups 88–100 %
+  (overlapping) and 85–100 % (cumulative).
+- This holds by construction: the snapshot graph at a common time point is the same for
+  all S, so matched groups are either identical or do not overlap (J̄ ∈ {0, 1}). The
+  informative results are the groups without a counterpart and the one-to-one shares
+  (58–80 % of the smaller configuration): S changes how groups are cut in time, not
+  their members. The hypothesis is partly supported.
 - One θ for all S works (cumulative θ = 0.35: mean score 0.86; overlapping θ = 0.40:
-  0.82); with J̄ ∈ {0, 1} the score is the share of groups of the larger set with an
+  0.82); the maximum is flat (0.82–0.86 over 0.10–0.60, 0.78–0.82 over 0.10–0.55), so θ̂
+  is a representative value of a stable range; with J̄ ∈ {0, 1} the score is the share of groups of the larger set with an
   identical counterpart.
 - The earlier non-robustness of interval and overlap was a sensitivity to the window
   width, not to the number of snapshots.
+- Limits: for overlapping windows the overlap of consecutive windows grows with S
+  (0 % at S = 10 to 80 % at S = 48); interval exists only for S = 10 (identical to
+  overlapping S = 10) and cannot be compared across S.
 
 ## Decisions
 
@@ -525,10 +531,11 @@ Choices made by the author during the analysis.
 
 - Matching criterion: absolute Jaccard only (not the adaptive Jaccard, not stability).
 - Reference levels for the number of groups: cumulative 70, interval 200,
-  overlap 110.
+  overlap 110. (Earlier configuration; with fixed windows 70 / 110 / 110, see below.)
 - Interval and overlap have no number of groups reached by all five snapshot
   counts; the analysis uses only the snapshot counts that reach the reference
-  level (interval: 20 to 50, overlap: 10 to 40).
+  level (interval: 20 to 50, overlap: 10 to 40). (Earlier configuration; with fixed
+  windows all five counts reach the level.)
 - Thresholds: the exact interpolated θ* is used (matching re-run at θ*), not the
   nearest grid value.
 - Group descriptors at θ*: lifespan (days between the first and last window end)
@@ -537,10 +544,11 @@ Choices made by the author during the analysis.
   of different snapshot counts do not coincide, so each time point of the
   configuration with fewer snapshots is paired with the nearest window end of the
   other configuration (window ends, not window centres, for consistency with
-  cumulative and interval).
+  cumulative and interval). (Earlier configuration; with fixed windows the common time
+  points are exact.)
 - Community comparison across snapshot counts, missing time points: a common time
   point at which only one of the two groups exists counts as Jaccard 0 in the mean
-  (snapshot-count windows on main).
+  (snapshot-count windows on main; superseded by the next entry).
 - Fixed window width, mean Jaccard of two groups: time points with J = 0 (one group
   missing or no shared member) are removed from the sum and from the count; J̄ = 0 if
   the two groups never overlap.
@@ -584,3 +592,7 @@ Choices made by the author during the analysis.
   line.
 - The fixed-window analysis is kept on its own branch; main keeps the snapshot-count
   windows (window width depending on S).
+- Review of the analysis: the comparison of the two window setups (table, figure and
+  its script), the 20-vs-50 group matching with the stability rule, and the figures of
+  the adaptive-Jaccard and stability criteria were removed as superseded; the number of
+  groups is plotted for the absolute Jaccard only.

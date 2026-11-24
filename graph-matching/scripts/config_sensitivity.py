@@ -239,11 +239,11 @@ def make_figures(grid: pd.DataFrame, fig_dir: Path, sweeps: set[str]) -> None:
     fig_dir.mkdir(parents=True, exist_ok=True)
     fixed_thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
     if "threshold" in sweeps:
-        for criterion in ("jaccard", "jaccard_adaptive", "stability"):
+        for criterion in ("jaccard",):  # the analysis uses the absolute Jaccard only
             for metric in METRICS:
                 plot_threshold_sweep(grid, criterion, metric, fig_dir / f"{metric}_vs_{criterion}.png")
     if "snapshots" in sweeps:
-        for criterion in ("jaccard", "jaccard_adaptive", "stability"):
+        for criterion in ("jaccard",):  # the analysis uses the absolute Jaccard only
             for metric in METRICS:
                 plot_snapshot_sweep(grid, criterion, metric, fixed_thresholds,
                                     fig_dir / f"{metric}_vs_snapshots_{criterion}.png")

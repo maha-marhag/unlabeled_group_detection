@@ -1,6 +1,0 @@
-approach,setup,identical_share,share_at_least_0_5
-cumulative,W depends on S,0.65,0.912
-interval,W depends on S,0.036,0.353
-overlap,W depends on S,0.018,0.23
-cumulative,W = 50 days,0.577,0.847
-overlap,W = 50 days,0.657,0.88
