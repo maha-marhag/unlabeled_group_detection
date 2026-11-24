@@ -334,7 +334,7 @@ def parse_groups_line(values: list[str] | None) -> dict[str, int] | None:
 
 def parse_args() -> argparse.Namespace:
     root = find_project_root()
-    base = root / "code" / "graph-matching" / "outputs" / "sensitivity_analysis"
+    base = root / "code" / "outputs" / "sensitivity_analysis"
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--grid", type=Path, default=base / "number_of_groups.csv")
     parser.add_argument("--figures", type=Path, default=base / "figures")

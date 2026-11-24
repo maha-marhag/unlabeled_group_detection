@@ -181,7 +181,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data", type=Path, default=root / "dataset" / "email-Eu-core-temporal.txt")
     parser.add_argument("--output", type=Path,
-                        default=root / "code" / "graph-matching" / "outputs" / "algorithm_comparison")
+                        default=root / "code" / "outputs" / "algorithm_comparison")
     return parser.parse_args()
 
 

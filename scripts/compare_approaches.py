@@ -679,9 +679,9 @@ def run(outputs: Path, output_dir: Path, threshold: float) -> None:
 def parse_args() -> argparse.Namespace:
     root = find_project_root()
     parser = argparse.ArgumentParser(description="Compare all three temporal-group approaches.")
-    parser.add_argument("--outputs", type=Path, default=root / "code" / "graph-matching" / "outputs")
+    parser.add_argument("--outputs", type=Path, default=root / "code" / "outputs")
     parser.add_argument("--output", type=Path,
-                        default=root / "code" / "graph-matching" / "outputs" / "approach_comparison")
+                        default=root / "code" / "outputs" / "approach_comparison")
     parser.add_argument("--stability-threshold", type=float, default=0.4)
     return parser.parse_args()
 

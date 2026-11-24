@@ -400,7 +400,7 @@ def parse_args() -> argparse.Namespace:
     project_dir = find_project_root()
     parser.add_argument("--data", type=Path, default=project_dir / "dataset" / "email-Eu-core-temporal.txt")
     parser.add_argument("--output", type=Path,
-                        default=project_dir / "code" / "graph-matching" / "outputs" / "graph_matching")
+                        default=project_dir / "code" / "outputs" / "graph_matching")
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
     parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)

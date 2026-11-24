@@ -211,7 +211,7 @@ def run(
     _, System = load_professor_package(project_root)
     if stage_identification_dir is None:
         stage_identification_dir = (
-            project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
+            project_root / "code" / "outputs" / "stage_identification"
         )
     output_dir.mkdir(parents=True, exist_ok=True)
     for approach in approaches or APPROACHES:
@@ -226,14 +226,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input",
         type=Path,
-        default=project_root / "code" / "graph-matching" / "outputs" / "stage_analysis",
+        default=project_root / "code" / "outputs" / "stage_analysis",
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=project_root
         / "code"
-        / "graph-matching"
         / "outputs"
         / "stage_analysis"
         / "figures"

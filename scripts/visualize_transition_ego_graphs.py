@@ -388,12 +388,11 @@ def build_figure(input_dir: Path, groups_per_approach: int) -> go.Figure:
 def parse_args() -> argparse.Namespace:
     project_dir = find_project_root()
     default_input = (
-        project_dir / "code" / "graph-matching" / "outputs" / "stage_identification"
+        project_dir / "code" / "outputs" / "stage_identification"
     )
     default_output = (
         project_dir
         / "code"
-        / "graph-matching"
         / "outputs"
         / "visualizations"
         / "branching_transition_graphs.html"

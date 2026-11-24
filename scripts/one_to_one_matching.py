@@ -183,7 +183,7 @@ def plot_comparison(summary: pd.DataFrame, out: Path) -> None:
 
 
 def main() -> None:
-    base = find_project_root() / "code" / "graph-matching" / "outputs" / "sensitivity_analysis"
+    base = find_project_root() / "code" / "outputs" / "sensitivity_analysis"
     frame = sweep(base)
     frame.to_csv(base / "fixed_window" / "one_to_one_pairs.csv", index=False)
     shares = [c for c in frame.columns if c.endswith(("_min", "_max"))]

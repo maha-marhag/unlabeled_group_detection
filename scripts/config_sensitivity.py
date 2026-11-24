@@ -255,7 +255,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--data", type=Path, default=root / "dataset" / "email-Eu-core-temporal.txt")
     parser.add_argument(
         "--output", type=Path,
-        default=root / "code" / "graph-matching" / "outputs" / "sensitivity_analysis",
+        default=root / "code" / "outputs" / "sensitivity_analysis",
     )
     parser.add_argument("--approach", choices=[*APPROACHES, "all"], default="all")
     parser.add_argument("--force", action="store_true", help="Recompute cached Louvain runs.")

@@ -20,7 +20,7 @@ python -m pip install -r requirements.txt
 ## Run Graph Matching
 
 ```bash
-python graph-matching/scripts/graph_matching.py --approach all
+python scripts/graph_matching.py --approach all
 ```
 
 Every snapshot window is 50 days wide and the window ends are anchored at the
@@ -35,8 +35,8 @@ below uses the stability criterion instead.
 ## Run Identity And Event Analysis
 
 ```bash
-python graph-matching/scripts/identity_events.py --approach all
-python graph-matching/scripts/stage_events.py --approach all
+python scripts/identity_events.py --approach all
+python scripts/stage_events.py --approach all
 ```
 
 Identity analysis now separates unlabeled group observations from final labeled
@@ -77,7 +77,7 @@ For large graph snapshots, node-link diagrams are difficult to interpret. The re
 Open this notebook:
 
 ```text
-graph-matching/scripts/metric_visualization_notebook.ipynb
+scripts/metric_visualization_notebook.ipynb
 ```
 
 It displays the metric tables and inline figures directly in the notebook. It does not write metric CSVs or dashboard HTML files.
@@ -90,15 +90,15 @@ The notebook covers:
 ## Visualize Final Community Transitions
 
 ```bash
-python graph-matching/scripts/visualize_final_transitions.py --groups-per-approach 3
-python graph-matching/scripts/visualize_transition_ego_graphs.py --groups-per-approach 3
+python scripts/visualize_final_transitions.py --groups-per-approach 3
+python scripts/visualize_transition_ego_graphs.py --groups-per-approach 3
 ```
 
 These write:
 
 ```text
-graph-matching/outputs/visualizations/final_community_transition_events.html
-graph-matching/outputs/visualizations/branching_transition_graphs.html
+outputs/visualizations/final_community_transition_events.html
+outputs/visualizations/branching_transition_graphs.html
 ```
 
 The figure shows representative final labeled groups for cumulative, interval,
@@ -114,9 +114,9 @@ events, and colored edges show continuation, split, and merge relationships.
 ## Run Stage Identification Analysis
 
 ```bash
-python graph-matching/scripts/stage_identification_analysis.py --approach overlap
-python graph-matching/scripts/stage_identification_analysis.py --approach all
-python graph-matching/scripts/visualize_stage_identification.py
+python scripts/stage_identification_analysis.py --approach overlap
+python scripts/stage_identification_analysis.py --approach all
+python scripts/visualize_stage_identification.py
 ```
 
 This analysis uses `v020.zip`, the professor's `group_analysis` package, as a
@@ -124,7 +124,7 @@ runtime dependency. The script builds the required `(u,g,t)` structure from the
 final labeled communities, where `u` is a member, `g` is a final label such as
 `c01`, and `t` is the snapshot index.
 
-Main outputs are written to `graph-matching/outputs/stage_analysis/`:
+Main outputs are written to `outputs/stage_analysis/`:
 
 - `labeled_group_memberships_u_g_t.csv`: one row per member-group-snapshot
   membership.

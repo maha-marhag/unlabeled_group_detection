@@ -376,7 +376,7 @@ def run(stage_dir: Path, ident_dir: Path, fig_dir: Path, approaches: list[str]) 
 
 
 def parse_args() -> argparse.Namespace:
-    root = find_project_root() / "code" / "graph-matching" / "outputs"
+    root = find_project_root() / "code" / "outputs"
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--stage-analysis", type=Path, default=root / "stage_analysis")
     parser.add_argument("--stage-identification", type=Path, default=root / "stage_identification")

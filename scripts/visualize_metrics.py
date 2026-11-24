@@ -251,7 +251,7 @@ def build_metric_dashboard_for_approach(args: argparse.Namespace, approach: str)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Visualize temporal network and community metrics.")
     parser.add_argument("--data", type=Path, default=None)
-    parser.add_argument("--results", type=Path, default=Path("graph-matching/outputs/graph_matching"))
+    parser.add_argument("--results", type=Path, default=Path("outputs/graph_matching"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
     parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)

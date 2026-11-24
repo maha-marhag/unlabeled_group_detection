@@ -545,9 +545,9 @@ def combine_final_communities(output_dir: Path, approaches: list[str]) -> None:
 
 def parse_args() -> argparse.Namespace:
     project_dir = find_project_root()
-    default_input = project_dir / "code" / "graph-matching" / "outputs" / "graph_matching"
+    default_input = project_dir / "code" / "outputs" / "graph_matching"
     default_output = (
-        project_dir / "code" / "graph-matching" / "outputs" / "stage_identification"
+        project_dir / "code" / "outputs" / "stage_identification"
     )
     parser = argparse.ArgumentParser(
         description="Classify temporal community lifecycle events."

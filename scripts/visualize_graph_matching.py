@@ -398,8 +398,8 @@ def write_combined_html(figures: dict[str, tuple[str, go.Figure]], output_path: 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create interactive node-link network visualizations.")
     parser.add_argument("--data", type=Path, default=None)
-    parser.add_argument("--results", type=Path, default=Path("graph-matching/outputs/graph_matching"))
-    parser.add_argument("--combined-output", type=Path, default=Path("graph-matching/outputs/visualizations/focused_community_evolution.html"))
+    parser.add_argument("--results", type=Path, default=Path("outputs/graph_matching"))
+    parser.add_argument("--combined-output", type=Path, default=Path("outputs/visualizations/focused_community_evolution.html"))
     parser.add_argument("--approach", choices=["interval", "cumulative", "overlap", "all"], default="all")
     parser.add_argument("--cutoff-days", type=int, default=526)
     parser.add_argument("--snapshot-days", type=int, default=50)

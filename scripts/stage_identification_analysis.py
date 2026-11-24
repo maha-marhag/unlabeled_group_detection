@@ -511,10 +511,10 @@ def combine_outputs(output_dir: Path, approaches: list[str]) -> None:
 def parse_args() -> argparse.Namespace:
     project_root = find_project_root()
     default_input = (
-        project_root / "code" / "graph-matching" / "outputs" / "stage_identification"
+        project_root / "code" / "outputs" / "stage_identification"
     )
     default_output = (
-        project_root / "code" / "graph-matching" / "outputs" / "stage_analysis"
+        project_root / "code" / "outputs" / "stage_analysis"
     )
     parser = argparse.ArgumentParser(
         description="Run classic and event-based stage analysis on final labeled groups."

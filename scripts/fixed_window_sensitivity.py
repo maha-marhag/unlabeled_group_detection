@@ -86,7 +86,7 @@ def sweep(runs: Path) -> pd.DataFrame:
 
 def parse_args() -> argparse.Namespace:
     root = find_project_root()
-    base = root / "code" / "graph-matching" / "outputs" / "sensitivity_analysis"
+    base = root / "code" / "outputs" / "sensitivity_analysis"
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--runs", type=Path, default=base / "runs")
     parser.add_argument("--output", type=Path, default=base / "fixed_window")
